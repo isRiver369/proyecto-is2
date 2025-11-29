@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso - ProServicios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Aplicando la fuente Arial, sans-serif como base */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #F8F9FA; /* Gris muy claro para fondo */
+        }
+        /* Definición de clases de color de la paleta ProServicios */
+        .proservicios-primary { background-color: #1A4B8C; }
+        .proservicios-text { color: #212529; }
+        .proservicios-secondary-text { color: #6C757D; }
+        .proservicios-info { color: #17A2B8; }
+        .proservicios-success-bg { background-color: #28A745; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 lg:p-10">
+    <script>
+        // Si ya hay sesión iniciada, redirigir directamente al catálogo
+        document.addEventListener('DOMContentLoaded', () => {
+            const usuario = localStorage.getItem('usuarioActual');
+            if (usuario) {
+                // Ya autenticado -> ir al catálogo
+                window.location.href = 'catalogo.html';
+            }
+        });
+
+        // Función de inicio de sesión: autentica contra usuarios guardados en localStorage
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            const messageBox = document.getElementById('message-box');
+
+            // Obtener usuarios desde localStorage
+            const users = JSON.parse(localStorage.getItem('usuariosProServicios') || '[]');
+            const user = users.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                messageBox.className = 'p-3 rounded-xl bg-green-100 text-[#28A745] font-semibold mb-4';
+                messageBox.textContent = '¡Inicio de sesión exitoso! Redirigiendo...';
+                // Guardar usuario actual (sin password) para uso en la app
+                localStorage.setItem('usuarioActual', JSON.stringify({ id: user.id, name: user.name, email: user.email }));
+                setTimeout(() => window.location.href = 'catalogo.html', 1000);
+            } else {
+                messageBox.className = 'p-3 rounded-xl bg-red-100 text-[#DC3545] font-semibold mb-4';
+                messageBox.textContent = 'Error: Credenciales inválidas. Si no tienes cuenta, regístrate.';
+            }
+            messageBox.style.display = 'block';
+        }
+    </script>
+    
+    <!-- Contenedor Principal con diseño de dos columnas para desktop -->
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-5xl w-full flex">
+        
+        <!-- Columna Izquierda: Logo Grande (Oculta en móviles) -->
+        <div class="hidden lg:block lg:w-1/2 proservicios-primary p-12 flex flex-col justify-center items-center relative">
+            
+            <h2 class="text-white text-4xl font-extrabold mb-4 text-center z-10">
+                Bienvenido de vuelta
+            </h2>
+            <p class="text-white text-opacity-80 text-center mb-8 z-10">
+                Accede a miles de servicios de profesionales verificados.
+            </p>
+            
+            <div class="w-full max-w-xs h-auto z-10 p-4">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-full h-full">
+                    <!-- Fondo (Escudo/Contenedor) - Invertido para que resalte sobre azul -->
+                    <path d="M100 10 C150 10, 190 50, 190 100 C190 150, 150 190, 100 190 C50 190, 10 150, 10 100 C10 50, 50 10, 100 10 Z" fill="#FFFFFF"/>
+                    
+                    <!-- Elemento 1: Libro (Cursos) - Color Azul Principal -->
+                    <path d="M60 50 Q80 45, 100 50 L100 150 Q80 155, 60 150 L60 50 M100 50 Q120 45, 140 50 L140 150 Q120 155, 100 150" fill="#1A4B8C" />
+                    
+                    <!-- Elemento 2: Checkmark (Reservas) - Color Azul Claro/Info -->
+                    <path d="M80 100 L110 130 L160 70 L145 55 L110 100 L95 85 Z" fill="#17A2B8" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>
+            </div>
+            
+            <p class="mt-8 text-white text-opacity-70 text-sm z-10">
+                Tu plataforma de servicios favoritos.
+            </p>
+
+            <!-- Pequeño toque visual de fondo -->
+            <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at top left, white, transparent);"></div>
+        </div>
+
+        <!-- Columna Derecha: Formulario de Login (50% en desktop, 100% en móvil) -->
+        <div class="w-full lg:w-1/2 p-8 sm:p-12 flex flex-col justify-center">
+            
+            <div class="w-20 h-20 mx-auto mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-full h-full">
+                    <!-- Fondo (Escudo/Contenedor) -->
+                    <path d="M100 10 C150 10, 190 50, 190 100 C190 150, 150 190, 100 190 C50 190, 10 150, 10 100 C10 50, 50 10, 100 10 Z" fill="#1A4B8C"/>
+                    
+                    <!-- Elemento 1: Libro (Cursos) - Color Blanco/Claro -->
+                    <path d="M60 50 Q80 45, 100 50 L100 150 Q80 155, 60 150 L60 50 M100 50 Q120 45, 140 50 L140 150 Q120 155, 100 150" fill="#FFFFFF" />
+                    
+                    <!-- Elemento 2: Checkmark (Reservas) - Color Azul Claro/Info -->
+                    <path d="M80 100 L110 130 L160 70 L145 55 L110 100 L95 85 Z" fill="#17A2B8" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-extrabold text-[#1A4B8C]">Iniciar Sesión</h1>
+                <p class="proservicios-secondary-text mt-2">Ingresa tus datos para continuar</p>
+            </div>
+
+            <!-- Mensaje de estado (éxito/error) -->
+            <div id="message-box" style="display: none;"></div>
+
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-5">
+                    <label for="email" class="block text-sm font-medium proservicios-text mb-2">Correo Electrónico</label>
+                    <input type="email" id="email" name="email" required
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17A2B8] focus:border-[#17A2B8] shadow-sm transition duration-150"
+                           placeholder="tucorre@gmail.com">
+                </div>
+
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium proservicios-text mb-2">Contraseña</label>
+                    <input type="password" id="password" name="password" required
+                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17A2B8] focus:border-[#17A2B8] shadow-sm transition duration-150"
+                           placeholder="••••••••">
+                </div>
+
+                <div class="flex justify-between items-center mb-6 text-sm">
+                    <div class="flex items-center">
+                        <input id="remember-me" type="checkbox" class="h-4 w-4 text-[#1A4B8C] border-gray-300 rounded focus:ring-[#1A4B8C]">
+                        <label for="remember-me" class="ml-2 proservicios-secondary-text">Recordarme</label>
+                    </div>
+                    <a href="#" class="proservicios-info hover:underline text-sm font-medium">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+
+                <button type="submit"
+                        class="w-full proservicios-primary text-white py-3 rounded-xl font-bold shadow-lg hover:bg-opacity-90 transition duration-300 transform hover:scale-[1.01]">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <p class="mt-6 text-center text-sm proservicios-secondary-text">
+                ¿Aún no tienes cuenta? 
+                <a href="registro.html" class="proservicios-secondary-text hover:underline font-bold transition duration-150">
+                    Regístrate Aquí
+                </a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
