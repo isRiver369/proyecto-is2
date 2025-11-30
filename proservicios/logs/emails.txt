@@ -1,0 +1,40 @@
+--------------------------------------------------
+FECHA: 2025-11-26 00:20:23
+PARA: juansebas@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Juan, tu pago de $65.00 para la reserva #1 ha sido confirmado exitosamente.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-11-26 12:24:15
+PARA: juansebas@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Juan, tu pago de $65.00 para la reserva #6 ha sido confirmado exitosamente.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-11-26 12:44:30
+PARA: juansebas@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Juan, tu pago de $65 para la reserva #5 ha sido confirmado exitosamente.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-11-28 04:21:33
+PARA: sebasj@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Sebastian, tu pago de $65 para la reserva #8 ha sido confirmado exitosamente.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-11-28 04:26:02
+PARA: sebasj@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Sebastian, tu pago de $40 para la reserva #9 ha sido confirmado exitosamente.
+--------------------------------------------------
+
