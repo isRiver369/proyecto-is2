@@ -38,3 +38,27 @@ MENSAJE:
 Hola Sebastian, tu pago de $40 para la reserva #9 ha sido confirmado exitosamente.
 --------------------------------------------------
 
+--------------------------------------------------
+FECHA: 2025-11-30 06:06:26
+PARA: carlos@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Carlos Marcos, tu pago de $35 para la reserva #1 ha sido confirmado exitosamente.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-11-30 16:15:24
+PARA: carlos@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Carlos Marcos, tu pago de $18 para la reserva #4 ha sido confirmado exitosamente.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-12-03 07:21:04
+PARA: carlos@gmail.com
+ASUNTO: Confirmación de Pago - ProServicios
+MENSAJE:
+Hola Carlos Marcos, tu pago de $18 para la reserva #9 ha sido confirmado exitosamente.
+--------------------------------------------------
+

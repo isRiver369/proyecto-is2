@@ -89,5 +89,39 @@ class ReservaService {
         }
         return ["success" => false, "message" => "Error de base de datos."];
     }
+    // 4. Obtener reservas de todos los servicios que pertenezcan a un proveedor
+    public function obtenerReservasPorProveedor($proveedor_id) {
+        $query = "SELECT 
+                    r.reserva_id,
+                    r.fecha_reserva,
+                    r.estado,
+                    r.total_pagar,
+
+                    CONCAT(u.nombre, ' ', u.apellido) AS cliente,
+
+                    s.nombre_servicio AS servicio_nombre
+
+                FROM reservas r
+                INNER JOIN servicios s ON r.servicio_id = s.servicio_id
+                INNER JOIN usuarios u ON r.usuario_id = u.usuario_id
+
+                WHERE s.proveedor_id = :pid
+                AND r.estado = 'pagada'
+                ORDER BY r.fecha_reserva DESC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":pid", $proveedor_id);
+        $stmt->execute();
+        
+        return $stmt;
+    }
+    
+    public function contarReservasPorServicio($servicio_id) {
+        $query = "SELECT COUNT(*) FROM reservas WHERE servicio_id = :id AND estado != 'cancelada'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $servicio_id);
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
 }
 ?>

@@ -8,9 +8,12 @@ $database = new Database();
 $db = $database->getConnection();
 $servicio = new Servicio($db);
 
-// Capturar búsqueda
+// Capturar búsqueda del filtro
 $busqueda = isset($_GET['q']) ? $_GET['q'] : "";
-$stmt = $servicio->obtenerTodos($busqueda);
+$horario = isset($_GET["horario"]) ? $_GET["horario"] : "";
+$precio = isset($_GET["precio"]) ? $_GET["precio"] : "";
+$disponibilidad = isset($_GET["disponibilidad"]) ? $_GET["disponibilidad"] : "";
+$stmt = $servicio->obtenerTodos($busqueda, $horario, $precio, $disponibilidad);
 $num = $stmt->rowCount();
 ?>
 
@@ -24,6 +27,9 @@ $num = $stmt->rowCount();
     <style>
         .proservicios-primary { background-color: #1A4B8C; }
         .proservicios-secondary-text { color: #6C757D; }
+        .arrow {
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -35,12 +41,108 @@ $num = $stmt->rowCount();
         <h1 class="text-3xl font-bold text-[#212529] mb-8 text-center">Inscripción a Cursos y Talleres</h1>
         
         <div class="max-w-xl mx-auto mb-10">
-            <form action="catalogo.php" method="GET" class="flex gap-2">
-                <input type="text" name="q" value="<?php echo htmlspecialchars($busqueda); ?>" placeholder="Buscar curso..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-[#1A4B8C] shadow-sm">
-                <button type="submit" class="bg-[#1A4B8C] text-white px-6 py-3 rounded-xl font-bold hover:bg-opacity-90 transition">Buscar</button>
-                <?php if(!empty($busqueda)): ?>
-                    <a href="catalogo.php" class="bg-gray-200 text-gray-600 px-4 py-3 rounded-xl font-bold hover:bg-gray-300 transition flex items-center">X</a>
-                <?php endif; ?>
+            <form action="catalogo.php" method="GET" class="flex flex-col gap-3 relative">
+                <!-- Buscador -->
+                <div class="flex gap-2">
+                    <input type="text" name="q" 
+                        value="<?php echo htmlspecialchars($busqueda); ?>" 
+                        placeholder="Buscar curso..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-[#1A4B8C] shadow-sm">
+
+                    <button type="submit" 
+                            class="bg-[#1A4B8C] text-white px-6 py-3 rounded-xl font-bold hover:bg-opacity-90 transition">
+                        Buscar
+                    </button>
+
+                    <!-- Botón filtros -->
+                    <button type="button" id="btnFiltros"
+                        class="bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-bold hover:bg-gray-300 transition flex items-center justify-between gap-2 w-28">
+                        <span>Filtros</span>
+                            <svg id="arrowFiltros" class="arrow w-4 h-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                    </button>
+                </div>
+
+                <!-- Menú desplegable principal -->
+                <div id="menuFiltros" 
+                    class="absolute mt-2 right-0 w-64 bg-white border rounded-xl shadow-xl hidden z-50 p-4">
+
+                    <h3 class="font-bold text-gray-700 mb-3">Filtrar por:</h3>
+
+                    <!-- Menú desplegable Disponibilidad/Cupos -->
+                    <div class="mb-3">
+                        <button type="button" 
+                                class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2">
+                            Disponibilidad / Cupos
+                            <svg id="arrowFiltros" class="arrow w-4 h-4 text-gray-700 transition-transform"
+                                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <div class="pl-3 mt-2 hidden submenu">
+                            <label>
+                                <input type="radio" name="disponibilidad" value="abierto"
+                                    <?= $disponibilidad=="abierto" ? "checked" : "" ?>> Inscripciones abiertas
+                            </label><br>
+
+                            <label>
+                                <input type="radio" name="disponibilidad" value="cerrado"
+                                    <?= $disponibilidad=="cerrado" ? "checked" : "" ?>> Inscripciones cerradas
+                            </label><br>
+
+                            <label>
+                                <input type="radio" name="disponibilidad" value=""
+                                    <?= $disponibilidad=="" ? "checked" : "" ?>> Todos
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Menú desplegable para horario -->
+                    <div class="mb-3">
+                        <button type="button" 
+                                class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2">
+                            Horario
+                            <svg id="arrowFiltros" class="arrow w-4 h-4 text-gray-700 transition-transform"
+                                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div class="pl-3 mt-2 hidden submenu">
+                            <label><input type="radio" name="horario" value="Mañana"
+                                        <?= $horario=="Mañana" ? "checked" : "" ?>> Mañana</label><br>
+                            <label><input type="radio" name="horario" value="Tarde"
+                                        <?= $horario=="Tarde" ? "checked" : "" ?>> Tarde</label><br>
+                            <label><input type="radio" name="horario" value="" <?= $horario=="" ? "checked" : "" ?>> Todos</label>
+                        </div>
+                    </div>
+
+                    <!-- Menú desplegable para el precio-->
+                    <div class="mb-3">
+                        <button type="button" 
+                                class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2">
+                            Precio
+                            <svg id="arrowFiltros" class="arrow w-4 h-4 text-gray-700 transition-transform"
+                                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div class="pl-3 mt-2 hidden submenu">
+                            <label><input type="radio" name="precio" value="10-40"
+                                        <?= $precio=="10-40" ? "checked" : "" ?>> $10 - $40</label><br>
+                            <label><input type="radio" name="precio" value="50-70"
+                                        <?= $precio=="50-70" ? "checked" : "" ?>> $50 - $70</label><br>
+                            <label><input type="radio" name="precio" value="70-100"
+                                        <?= $precio=="70-100" ? "checked" : "" ?>> $70 - $100</label><br>
+                            <label><input type="radio" name="precio" value="" <?= $precio=="" ? "checked" : "" ?>> Todos</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="mt-4 bg-[#1A4B8C] w-full text-white py-2 rounded-lg font-bold">
+                        Aplicar filtros
+                    </button>
+                </div>
             </form>
         </div>
 
@@ -83,7 +185,11 @@ $num = $stmt->rowCount();
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#1A4B8C]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         <div>
                             <span class="block font-bold text-gray-800">Duración:</span>
-                            <?php echo date('d/M', strtotime($fecha_inicio ?? 'now')) . " - " . date('d/M', strtotime($fecha_fin ?? 'now')); ?>
+                            <?php
+                            $fi = !empty($fecha_inicio) ? $fecha_inicio : date('Y-m-d');
+                            $ff = !empty($fecha_fin) ? $fecha_fin : date('Y-m-d');
+                            echo date('d/M', strtotime($fi)) . " - " . date('d/M', strtotime($ff));
+                            ?>
                         </div>
                     </div>
 
@@ -139,5 +245,37 @@ $num = $stmt->rowCount();
             ?>
         </div>
     </main>
+    <script>
+        const btnFiltros = document.getElementById("btnFiltros");
+        const menuFiltros = document.getElementById("menuFiltros");
+        const arrowFiltros = document.getElementById("arrowFiltros");
+
+        // Abrir menú desplegable de filtros
+        btnFiltros.addEventListener("click", (e) => {
+            e.stopPropagation(); 
+            menuFiltros.classList.toggle("hidden");
+        });
+
+        menuFiltros.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+
+        document.addEventListener("click", () => {
+            if (!menuFiltros.classList.contains("hidden")) {
+                menuFiltros.classList.add("hidden");
+                arrowFiltros.classList.remove("open");
+            }
+        });
+
+        document.querySelectorAll("#menuFiltros button").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const submenu = btn.nextElementSibling;
+
+                if (submenu && submenu.classList.contains("submenu")) {
+                    submenu.classList.toggle("hidden");
+                }
+            });
+        });
+    </script>
 </body>
 </html>
