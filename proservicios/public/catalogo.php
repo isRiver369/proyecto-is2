@@ -159,9 +159,31 @@ $num = $stmt->rowCount();
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     extract($row);
                     
-                    // Lógica visual
-                    $isAvailable = ($disponible == 1);
-                    $badgeClass = $isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                    // Extraer variables, incluyendo 'cupos_restantes' que viene del nuevo query
+                    extract($row);
+    
+                    // Lógica visual inteligente
+                    $tieneCupo = ($cupos_restantes > 0);
+                    $estaActivo = ($disponible == 1);
+                    $isAvailable = ($tieneCupo && $estaActivo);
+
+                    if ($isAvailable) {
+                        if ($cupos_restantes <= 3) {
+                            // ¡Urgencia! Quedan pocos
+                            $badgeClass = 'bg-orange-100 text-orange-800 border border-orange-200';
+                            $badgeText  = "¡Últimos $cupos_restantes cupos!";
+                        } else {
+                            // Normal
+                            $badgeClass = 'bg-green-100 text-green-800 border border-green-200';
+                            $badgeText  = "$cupos_restantes cupos disponibles";
+                        }
+                        $cardOpacity = ''; // Opacidad normal
+                    } else {
+                        // Cerrado
+                        $badgeClass = 'bg-red-100 text-red-800 border border-red-200';
+                        $badgeText  = 'Agotado / Cerrado';
+                        $cardOpacity = 'opacity-75 grayscale'; // Efecto visual de deshabilitado
+                    }
                     $badgeText  = $isAvailable ? 'Inscripciones Abiertas' : 'Cerrado';
                     $cardOpacity = $isAvailable ? '' : 'opacity-75';
 

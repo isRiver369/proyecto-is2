@@ -6,28 +6,25 @@ class AuthService {
     private $conn;
     private $table_name = "usuarios";
 
-    public function __construct() {
-        $database = new Database();
-        $this->conn = $database->getConnection();
+    // APLICANDO DIP (Inyección de Dependencias)
+    // Permitimos pasar la conexión desde fuera. Si no se pasa, creamos una por defecto.
+    public function __construct($dbConn = null) {
+        if ($dbConn == null) {
+            $database = new Database();
+            $this->conn = $database->getConnection();
+        } else {
+            $this->conn = $dbConn;
+        }
     }
 
     // Registrar un nuevo usuario 
     public function registrar($nombre, $apellido, $email, $password, $telefono) {
-        // Validar que nombre y apellido solo contengan letras y espacios
-        if (!preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/", $nombre)) {
-            return ["success" => false, "message" => "El nombre solo puede contener letras."];
-        }
-        if (!preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/", $apellido)) {
-            return ["success" => false, "message" => "El apellido solo puede contener letras."];
-        }
-        // Validar formato de email
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ["success" => false, "message" => "El formato del correo no es válido."];
-        }
-        // Validar que el teléfono tenga solo números y 10 dígitos
-        if (!preg_match("/^[0-9]{10}$/", $telefono)) {
-            return ["success" => false, "message" => "El teléfono debe tener 10 dígitos numéricos."];
-        }
+        // Validaciones Regex (Igual que tenías, están perfectas)
+        if (!preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/", $nombre)) return ["success" => false, "message" => "El nombre solo puede contener letras."];
+        if (!preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/", $apellido)) return ["success" => false, "message" => "El apellido solo puede contener letras."];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return ["success" => false, "message" => "El formato del correo no es válido."];
+        if (!preg_match("/^[0-9]{10}$/", $telefono)) return ["success" => false, "message" => "El teléfono debe tener 10 dígitos numéricos."];
+
         // 1. Verificar si el email existe 
         $queryCheck = "SELECT usuario_id FROM " . $this->table_name . " WHERE email = ?";
         $stmtCheck = $this->conn->prepare($queryCheck);
@@ -38,17 +35,13 @@ class AuthService {
         }
 
         // 2. Insertar usuario 
-        // Ya no hacemos explode() porque recibimos $nombre y $apellido puros.
-        
         $query = "INSERT INTO " . $this->table_name . " 
                   (nombre, apellido, email, password_hash, telefono, rol) 
                   VALUES (:nombre, :apellido, :email, :password, :telefono, 'cliente')";
 
         $stmt = $this->conn->prepare($query);
-
         $password_hash = password_hash($password, PASSWORD_BCRYPT);
         
-        // Asignamos directamente
         $stmt->bindParam(":nombre", $nombre);
         $stmt->bindParam(":apellido", $apellido);
         $stmt->bindParam(":email", $email);
@@ -64,22 +57,25 @@ class AuthService {
 
     // Iniciar Sesión
     public function login($email, $password) {
-        $query = "SELECT usuario_id, nombre, apellido, password_hash, rol FROM " . $this->table_name . " WHERE email = :email LIMIT 0,1";
+        $query = "SELECT usuario_id, nombre, apellido, password_hash, rol, email FROM " . $this->table_name . " WHERE email = :email LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":email", $email);
         $stmt->execute();
 
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            // Verificar si la contraseña coincide con el hash
+            
             if (password_verify($password, $row['password_hash'])) {
-                // Iniciar la sesión de PHP
                 if (session_status() === PHP_SESSION_NONE) {
                     session_start();
                 }
+                
+                // SEGURIDAD: Prevenir fijación de sesión
+                session_regenerate_id(true);
+
                 $_SESSION['usuario_id'] = $row['usuario_id'];
                 $_SESSION['nombre_completo'] = $row['nombre'] . " " . $row['apellido'];
-                $_SESSION['email'] = $email;
+                $_SESSION['email'] = $row['email']; // Útil para otros procesos
                 $_SESSION['rol'] = $row['rol'];
                 
                 return ["success" => true, "message" => "Bienvenido " . $row['nombre']];
@@ -87,16 +83,18 @@ class AuthService {
         }
         return ["success" => false, "message" => "Correo o contraseña incorrectos."];
     }
-    // 1. Obtener datos actuales del usuario
-    public function obtenerDatosUsuario($usuario_id) {
-        $query = "SELECT nombre, apellido, email, telefono FROM " . $this->table_name . " WHERE usuario_id = :id LIMIT 0,1";
+
+    // Obtener todos los datos de un usuario por su ID
+    // (Reemplaza a obtenerDatosUsuario para evitar duplicidad)
+    public function obtenerUsuarioPorId($id) {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE usuario_id = :id LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $usuario_id);
+        $stmt->bindParam(":id", $id);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // 2. Actualizar datos
+    // Actualizar datos básicos (Cliente)
     public function actualizarPerfil($usuario_id, $nombre, $apellido, $telefono) {
         $query = "UPDATE " . $this->table_name . " 
                   SET nombre = :nombre, apellido = :apellido, telefono = :telefono 
@@ -109,34 +107,14 @@ class AuthService {
         $stmt->bindParam(":id", $usuario_id);
 
         if ($stmt->execute()) {
-            // Actualizar la sesión para que el nombre cambie en el menú inmediatamente
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
+            if (session_status() === PHP_SESSION_NONE) session_start();
             $_SESSION['nombre_completo'] = $nombre . " " . $apellido;
             return ["success" => true, "message" => "Datos actualizados correctamente."];
         }
         return ["success" => false, "message" => "Error al actualizar los datos."];
     }
-    // Cerrar Sesión
-    public function logout() {
-        session_start();
-        session_destroy();
-    }
-    // Obtener todos los datos de un usuario por su ID
-    public function obtenerUsuarioPorId($id) {
-        // Seleccionamos también bio y portafolio_url por si es proveedor
-        $query = "SELECT * FROM " . $this->table_name . " WHERE usuario_id = :id LIMIT 0,1";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $id);
-        $stmt->execute();
-        
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-    
-    // (Opcional) Método para actualizar perfil de proveedor con Bio
-    // Esto servirá para el formulario de "Mi Perfil" en el panel
+
+    // Actualizar perfil extendido (Proveedor)
     public function actualizarPerfilProveedor($id, $bio, $portafolio) {
         $query = "UPDATE " . $this->table_name . " 
                   SET bio = :bio, portafolio_url = :url 
@@ -148,6 +126,12 @@ class AuthService {
         $stmt->bindParam(":id", $id);
         
         return $stmt->execute();
+    }
+
+    // Cerrar Sesión
+    public function logout() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        session_destroy();
     }
 }
 ?>

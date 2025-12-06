@@ -13,7 +13,9 @@ if (isset($_GET['id'])) {
     $reserva_id = $_GET['id'];
     $usuario_id = $_SESSION['usuario_id'];
 
-    $reservaService = new ReservaService();
+    require_once '../config/Database.php';
+    $db = (new Database())->getConnection();
+    $reservaService = new ReservaService($db); // <--- Inyección de Dependencias
     $resultado = $reservaService->cancelarReserva($reserva_id, $usuario_id);
 
     if ($resultado['success']) {

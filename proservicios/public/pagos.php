@@ -2,26 +2,31 @@
 // 1. SEGURIDAD Y DEPENDENCIAS
 require_once '../src/Servicios/Seguridad.php';
 require_once '../src/Servicios/PagoService.php';
+require_once '../src/Servicios/PaymentStrategies.php'; // <--- NUEVO: Incluimos las estrategias
 
 Seguridad::requerirRol('cliente');
 
 // 2. OBTENER DATOS DE LA RESERVA
 if (!isset($_GET['reserva_id'])) {
-    // Redirigir al comprobante para descargar PDF
-    header("Location: ver_comprobante.php?reserva_id=" . $reserva_id);
+    header("Location: reserva.php");
     exit();
 }
 
 $reserva_id = $_GET['reserva_id'];
-$pagoService = new PagoService();
+// SOLID: Inyección de Dependencias (Composición)
+$database = new Database();
+$dbConn = $database->getConnection();
+$notificador = new NotificacionService();
+// Inyectamos las dependencias al nacer
+$pagoService = new PagoService($dbConn, $notificador);
 $datosReserva = $pagoService->obtenerReservaParaPago($reserva_id, $_SESSION['usuario_id']);
 
 if (!$datosReserva) {
-    die(" Reserva no encontrada o no te pertenece.");
+    die("Reserva no encontrada o no te pertenece.");
 }
 
-// 3. CÁLCULO DE PRECIOS (Desglose IVA)
-$tasa_impuesto = 0.15; // 15% IVA
+// 3. CÁLCULO DE PRECIOS
+$tasa_impuesto = 0.15;
 $total = floatval($datosReserva['total_pagar']);
 $subtotal = $total / (1 + $tasa_impuesto);
 $impuesto = $total - $subtotal;
@@ -30,27 +35,28 @@ $impuesto = $total - $subtotal;
 $errores = [];
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
-    // Validaciones básicas
+    // A. Validaciones Comunes (Facturación)
     if (empty($_POST['billing_cedula'])) $errores[] = "La cédula es obligatoria.";
     if (empty($_POST['billing_address'])) $errores[] = "La dirección es obligatoria.";
     
     $metodo = $_POST['payment-method'];
-    
-    // Validación específica por método
-    if ($metodo == 'tarjeta') {
-        $numTarjeta = str_replace(' ', '', $_POST['cardNumber']);
-        if (!preg_match('/^[0-9]{16}$/', $numTarjeta)) {
-            $errores[] = "La tarjeta debe tener 16 dígitos.";
-        }
-        if (empty($_POST['cardName'])) $errores[] = "El nombre en la tarjeta es obligatorio.";
-        if (!preg_match('/^[0-9]{3,4}$/', $_POST['cvv'])) $errores[] = "CVV inválido.";
-    } elseif ($metodo == 'transferencia') {
-        if (empty($_FILES['voucher']['name'])) {
-            $errores[] = "Debes subir la foto del comprobante.";
-        }
+
+    // B. Validación Específica por Método (APLICANDO OCP)
+    try {
+        // 1. Pedimos a la fábrica el validador correcto (sin usar if/else aquí)
+        $validador = ValidadorFactory::obtenerValidador($metodo);
+        
+        // 2. Ejecutamos la validación polimórfica
+        $erroresMetodo = $validador->validar($_POST, $_FILES);
+        
+        // 3. Unimos los errores
+        $errores = array_merge($errores, $erroresMetodo);
+
+    } catch (Exception $e) {
+        $errores[] = $e->getMessage();
     }
 
-    // Si no hay errores, procesamos
+    // C. Procesar si no hay errores
     if (empty($errores)) {
         $resultado = $pagoService->registrarPago($reserva_id, $total, $metodo);
         if ($resultado['success']) {
@@ -71,35 +77,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Procesar Pago - ProServicios</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Estilos Originales */
-        :root {
-            --primary: #1A4B8C;
-            --primary-dark: #0D2F5A;
-            --success: #1B7A1B;
-            --bg-light: #F8F9FA;
-        }
+        :root { --primary: #1A4B8C; --primary-dark: #0D2F5A; --success: #1B7A1B; --bg-light: #F8F9FA; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); }
-        
-        /* Barra de Progreso */
         .progress-container { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .progress-bar { display: flex; justify-content: space-between; position: relative; }
         .progress-bar::before { content: ''; position: absolute; top: 20px; left: 0; right: 0; height: 2px; background-color: #CED4DA; z-index: 1; }
         .progress-step { flex: 1; text-align: center; position: relative; z-index: 2; }
         .progress-step .step-circle { width: 40px; height: 40px; border-radius: 50%; background-color: #E9ECEF; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem; font-weight: bold; color: #495057; border: 2px solid #CED4DA; transition: all 0.3s ease; }
-        
-        /* Estados de la barra */
         .progress-step.active .step-circle { background-color: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); }
         .progress-step.completed .step-circle { background-color: var(--success); color: white; border-color: var(--success); }
-        
-        /* Bloques de Pasos (Wizard) */
         .step-block { display: none; animation: fadeIn 0.3s ease; }
         .step-block.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Radio Button Cards */
         .radio-option { border: 2px solid #CED4DA; cursor: pointer; transition: all 0.2s; }
         .radio-option:hover { border-color: var(--primary); background-color: rgba(26, 75, 140, 0.05); }
-        .radio-option input:checked + div { border-color: var(--primary); } /* Lógica visual manejada por JS abajo */
+        .radio-option input:checked + div { border-color: var(--primary); }
         .selected-method { border-color: var(--primary) !important; background-color: rgba(26, 75, 140, 0.1); }
     </style>
 </head>
@@ -266,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                     
                     <div class="mt-6 text-center text-xs opacity-70 bg-black/10 p-2 rounded">
-                         Transacción Segura SSL
+                        Transacción Segura SSL
                     </div>
                 </div>
             </div>
@@ -275,12 +267,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <script>
         function changeStep(step) {
-            // Ocultar todos los pasos
             document.querySelectorAll('.step-block').forEach(el => el.classList.remove('active'));
-            // Mostrar el actual
             document.getElementById('step' + step).classList.add('active');
             
-            // Actualizar barra superior
             const p1 = document.getElementById('p-step-1');
             const p2 = document.getElementById('p-step-2');
             
@@ -306,9 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         function selectMethod(method) {
             const card = document.getElementById('card-details');
             const transfer = document.getElementById('transfer-details');
-            const radios = document.getElementsByName('payment-method');
             
-            // Actualizar visualización de formularios
             if(method === 'tarjeta') {
                 card.classList.remove('hidden');
                 transfer.classList.add('hidden');
@@ -317,12 +304,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 transfer.classList.remove('hidden');
             }
 
-            // Marcar visualmente el radio button seleccionado
             document.querySelectorAll('.radio-option').forEach(el => el.classList.remove('selected-method'));
             event.currentTarget.classList.add('selected-method');
         }
         
-        // Inicializar estilo del radio button por defecto
         document.querySelector('.radio-option').classList.add('selected-method');
     </script>
 </body>

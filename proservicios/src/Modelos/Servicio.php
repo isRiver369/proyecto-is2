@@ -16,48 +16,66 @@ class Servicio {
         return $stmt;
     }
 
-    // LEER: Obtener todos Para el catalogo
-    public function obtenerTodos($busqueda = "", $horario ="", $precio = "", $disponibilidad = "") {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE 1=1";
+    // Método avanzado con Filtros Dinámicos
+    public function obtenerTodos($busqueda = "", $horario = "", $precio_rango = "", $disponibilidad = "") {
+        
+        // 1. Consulta Base con Cálculo de Cupos
+        $query = "SELECT s.*, 
+                  (s.cupo_maximo - (
+                      SELECT COUNT(*) 
+                      FROM reservas r 
+                      WHERE r.servicio_id = s.servicio_id 
+                      AND r.estado != 'cancelada'
+                  )) as cupos_restantes
+                  FROM " . $this->table_name . " s
+                  WHERE 1=1"; // Truco para concatenar 'AND' fácilmente
 
-        // Filtro de búsqueda por texto
+        // 2. Filtros WHERE (Datos estáticos)
+        
+        // Búsqueda por texto
         if (!empty($busqueda)) {
-            $query .= " AND (nombre_servicio LIKE :b OR descripcion LIKE :b)";
+            $query .= " AND (s.nombre_servicio LIKE :busqueda OR s.descripcion LIKE :busqueda)";
         }
 
-        // Filtro por horario
+        // Filtro por Horario (Busca coincidencias parciales, ej: 'Mañana' dentro de 'Mañana,Tarde')
         if (!empty($horario)) {
-            $query .= " AND horario LIKE :h";
+            $query .= " AND s.horario LIKE :horario";
         }
 
-        // Filtro por rangos de precio
-        if (!empty($precio)) {
-            list($min, $max) = explode("-", $precio);
-            $query .= " AND precio BETWEEN :min AND :max";
+        // Filtro por Precio (Rango 'min-max')
+        if (!empty($precio_rango)) {
+            $rango = explode('-', $precio_rango);
+            if (count($rango) == 2) {
+                $query .= " AND s.precio >= :p_min AND s.precio <= :p_max";
+            }
         }
 
-        // Filtro por disponibilidad/cupos (1 y 0 campo 'disponible' ¿se mantiene así?)
-        if ($disponibilidad === "abierto") {
-            $query .= " AND disponible = 1";
-        } elseif ($disponibilidad === "cerrado") {
-            $query .= " AND disponible = 0";
+        // 3. Filtros HAVING (Para columnas calculadas como 'cupos_restantes')
+        
+        if ($disponibilidad === 'abierto') {
+            // Mostrar solo si tiene cupos Y está marcado como disponible
+            $query .= " HAVING cupos_restantes > 0 AND s.disponible = 1";
+        } elseif ($disponibilidad === 'cerrado') {
+            // Mostrar si NO tiene cupos O está marcado como no disponible
+            $query .= " HAVING (cupos_restantes <= 0 OR s.disponible = 0)";
         }
 
+        $query .= " ORDER BY s.nombre_servicio ASC";
+        
+        // 4. Preparar y Bindear
         $stmt = $this->conn->prepare($query);
 
         if (!empty($busqueda)) {
-            $termino = "%".$busqueda."%";
-            $stmt->bindParam(":b", $termino);
+            $termino = "%" . $busqueda . "%";
+            $stmt->bindParam(":busqueda", $termino);
         }
-
         if (!empty($horario)) {
-            $h = "%".$horario."%";
-            $stmt->bindParam(":h", $h);
+            $termHorario = "%" . $horario . "%";
+            $stmt->bindParam(":horario", $termHorario);
         }
-
-        if (!empty($precio)) {
-            $stmt->bindParam(":min", $min);
-            $stmt->bindParam(":max", $max);
+        if (!empty($precio_rango) && count($rango) == 2) {
+            $stmt->bindParam(":p_min", $rango[0]);
+            $stmt->bindParam(":p_max", $rango[1]);
         }
 
         $stmt->execute();
@@ -86,29 +104,23 @@ class Servicio {
 
     // ELIMINAR
     public function eliminar($servicio_id, $proveedor_id) {
-
-        // 1. Validar si el servicio tiene reservas
+        // 1. Validar si el servicio tiene reservas activas
         $queryCheck = "SELECT COUNT(*) FROM reservas WHERE servicio_id = :sid";
         $stmtCheck = $this->conn->prepare($queryCheck);
         $stmtCheck->bindParam(":sid", $servicio_id);
         $stmtCheck->execute();
-        $revisarReservas = $stmtCheck->fetchColumn();
-
-        if ($revisarReservas > 0) {
-            return "reservado";
+        
+        if ($stmtCheck->fetchColumn() > 0) {
+            return "reservado"; // No eliminar si hay gente inscrita
         }
 
-        // 2. Si no tiene reservas, el servicio se puede eliminar 
+        // 2. Si está limpio, eliminar
         $query = "DELETE FROM " . $this->table_name . " WHERE servicio_id = :sid AND proveedor_id = :pid";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":sid", $servicio_id);
         $stmt->bindParam(":pid", $proveedor_id);
 
-        if ($stmt->execute()) {
-            return "ok";
-        }
-
-        return "error";
+        return $stmt->execute() ? "ok" : "error";
     }
 }
 ?>

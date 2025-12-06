@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // 3. Obtener datos actuales (siempre al final para mostrar lo actualizado)
-$datos = $auth->obtenerDatosUsuario($usuario_id);
+$datos = $auth->obtenerUsuarioPorId($usuario_id);
 ?>
 
 <!DOCTYPE html>

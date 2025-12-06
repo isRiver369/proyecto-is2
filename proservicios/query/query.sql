@@ -153,4 +153,15 @@ UNLOCK TABLES;
 
 -- Dump completed on 2025-12-03  3:39:16
 
+USE proservicios_db;
+-- Agregamos la columna donde se guardará si es "Mañana" o "Tarde"
+ALTER TABLE reservas 
+ADD COLUMN horario_elegido VARCHAR(100) NULL AFTER fecha_reserva;
+-- Actualizar los horarios de los servicios existentes
+USE proservicios_db;
+SET SQL_SAFE_UPDATES = 0; -- Desactiva la protección temporalmente
+UPDATE servicios
+SET horario = 'Mañana (08:00 - 12:00),Tarde (14:00 - 18:00)'
+WHERE servicio_id > 0;
 
+SET SQL_SAFE_UPDATES = 1; -- La reactiva por seguridad
