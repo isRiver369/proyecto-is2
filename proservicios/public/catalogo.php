@@ -66,83 +66,118 @@ $num = $stmt->rowCount();
 
                 <!-- Menú desplegable principal -->
                 <div id="menuFiltros" 
-                    class="absolute mt-2 right-0 w-64 bg-white border rounded-xl shadow-xl hidden z-50 p-4">
+    class="absolute mt-2 right-0 w-[600px] bg-white border rounded-xl shadow-xl hidden z-50 p-4">
 
-                    <h3 class="font-bold text-gray-700 mb-3">Filtrar por:</h3>
+    <h3 class="font-bold text-gray-700 mb-3">Filtrar por:</h3>
 
-                    <!-- Menú desplegable Disponibilidad/Cupos -->
-                    <div class="mb-3">
-                        <button type="button" 
-                                class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2">
-                            Disponibilidad / Cupos
-                            <svg id="arrowFiltros" class="arrow w-4 h-4 text-gray-700 transition-transform"
-                                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
+    <!-- Contenedor horizontal de los filtros -->
+    <div class="flex flex-wrap gap-4">
 
-                        <div class="pl-3 mt-2 hidden submenu">
-                            <label>
-                                <input type="radio" name="disponibilidad" value="abierto"
-                                    <?= $disponibilidad=="abierto" ? "checked" : "" ?>> Inscripciones abiertas
-                            </label><br>
+        <!-- Disponibilidad -->
+        <div class="flex-1 min-w-[160px]">
+            <button type="button" 
+                    class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2"
+                    onclick="toggleSubmenu(this)">
+                Disponibilidad
+                <svg class="arrow w-4 h-4 text-gray-700 transition-transform"
+                    fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div class="mt-2 hidden submenu">
+                <label class="block"><input type="radio" name="disponibilidad" value="abierto" <?= $disponibilidad=="abierto" ? "checked" : "" ?>> Inscripciones abiertas</label>
+                <label class="block mt-1"><input type="radio" name="disponibilidad" value="cerrado" <?= $disponibilidad=="cerrado" ? "checked" : "" ?>> Inscripciones cerradas</label>
+                <label class="block mt-1"><input type="radio" name="disponibilidad" value="" <?= $disponibilidad=="" ? "checked" : "" ?>> Todos</label>
+            </div>
+        </div>
 
-                            <label>
-                                <input type="radio" name="disponibilidad" value="cerrado"
-                                    <?= $disponibilidad=="cerrado" ? "checked" : "" ?>> Inscripciones cerradas
-                            </label><br>
+        <!-- Horario -->
+        <div class="flex-1 min-w-[160px]">
+                      <button type="button" 
+                              class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2"
+                              onclick="toggleSubmenu(this)">
+                          Horario
+                          <svg class="arrow w-4 h-4 text-gray-700 transition-transform"
+                              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                      </button>
+                      <div class="mt-2 hidden submenu">
+                          <label class="block"><input type="radio" name="horario" value="Mañana" <?= $horario=="Mañana" ? "checked" : "" ?>> Mañana</label>
+                          <label class="block mt-1"><input type="radio" name="horario" value="Tarde" <?= $horario=="Tarde" ? "checked" : "" ?>> Tarde</label>
+                          <label class="block mt-1"><input type="radio" name="horario" value="" <?= $horario=="" ? "checked" : "" ?>> Todos</label>
+                      </div>
+                  </div>
 
-                            <label>
-                                <input type="radio" name="disponibilidad" value=""
-                                    <?= $disponibilidad=="" ? "checked" : "" ?>> Todos
-                            </label>
-                        </div>
-                    </div>
+                  <!-- Modalidad (NUEVO) -->
+                  <div class="flex-1 min-w-[160px]">
+                      <button type="button" 
+                              class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2"
+                              onclick="toggleSubmenu(this)">
+                          Modalidad
+                          <svg class="arrow w-4 h-4 text-gray-700 transition-transform"
+                              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                      </button>
+                      <div class="mt-2 hidden submenu">
+                          <label class="block"><input type="radio" name="modalidad" value="Presencial" <?= ($modalidad ?? "") == "Presencial" ? "checked" : "" ?>> Presencial</label>
+                          <label class="block mt-1"><input type="radio" name="modalidad" value="Online" <?= ($modalidad ?? "") == "Online" ? "checked" : "" ?>> Online</label>
+                          <label class="block mt-1"><input type="radio" name="modalidad" value="" <?= ($modalidad ?? "") == "" ? "checked" : "" ?>> Ambas</label>
+                      </div>
+                  </div>
 
-                    <!-- Menú desplegable para horario -->
-                    <div class="mb-3">
-                        <button type="button" 
-                                class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2">
-                            Horario
-                            <svg id="arrowFiltros" class="arrow w-4 h-4 text-gray-700 transition-transform"
-                                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div class="pl-3 mt-2 hidden submenu">
-                            <label><input type="radio" name="horario" value="Mañana"
-                                        <?= $horario=="Mañana" ? "checked" : "" ?>> Mañana</label><br>
-                            <label><input type="radio" name="horario" value="Tarde"
-                                        <?= $horario=="Tarde" ? "checked" : "" ?>> Tarde</label><br>
-                            <label><input type="radio" name="horario" value="" <?= $horario=="" ? "checked" : "" ?>> Todos</label>
-                        </div>
-                    </div>
+                  <!-- Precio -->
+                  <div class="flex-1 min-w-[160px]">
+                      <button type="button" 
+                              class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2"
+                              onclick="toggleSubmenu(this)">
+                          Precio
+                          <svg class="arrow w-4 h-4 text-gray-700 transition-transform"
+                              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                      </button>
+                      <div class="mt-2 hidden submenu">
+                          <label class="block"><input type="radio" name="precio" value="10-40" <?= $precio=="10-40" ? "checked" : "" ?>> $10 - $40</label>
+                          <label class="block mt-1"><input type="radio" name="precio" value="50-70" <?= $precio=="50-70" ? "checked" : "" ?>> $50 - $70</label>
+                          <label class="block mt-1"><input type="radio" name="precio" value="70-100" <?= $precio=="70-100" ? "checked" : "" ?>> $70 - $100</label>
+                          <label class="block mt-1"><input type="radio" name="precio" value="" <?= $precio=="" ? "checked" : "" ?>> Todos</label>
+                      </div>
+                  </div>
+              </div>
 
-                    <!-- Menú desplegable para el precio-->
-                    <div class="mb-3">
-                        <button type="button" 
-                                class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2">
-                            Precio
-                            <svg id="arrowFiltros" class="arrow w-4 h-4 text-gray-700 transition-transform"
-                                fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div class="pl-3 mt-2 hidden submenu">
-                            <label><input type="radio" name="precio" value="10-40"
-                                        <?= $precio=="10-40" ? "checked" : "" ?>> $10 - $40</label><br>
-                            <label><input type="radio" name="precio" value="50-70"
-                                        <?= $precio=="50-70" ? "checked" : "" ?>> $50 - $70</label><br>
-                            <label><input type="radio" name="precio" value="70-100"
-                                        <?= $precio=="70-100" ? "checked" : "" ?>> $70 - $100</label><br>
-                            <label><input type="radio" name="precio" value="" <?= $precio=="" ? "checked" : "" ?>> Todos</label>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="mt-4 bg-[#1A4B8C] w-full text-white py-2 rounded-lg font-bold">
-                        Aplicar filtros
+                <!-- Ubicación -->
+                <div class="flex-1 min-w-[160px]">
+                    <button type="button" 
+                            class="w-full flex justify-between items-center font-semibold text-left text-gray-700 py-2"
+                            onclick="toggleSubmenu(this)">
+                        Ubicación
+                        <svg class="arrow w-4 h-4 text-gray-700 transition-transform"
+                            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
                     </button>
+                    <div class="mt-2 hidden submenu">
+                        <label class="block"><input type="radio" name="ubicacion" value="Guayaquil" <?= ($ubicacion ?? "") == "Guayaquil" ? "checked" : "" ?>> Guayaquil</label>
+                        <label class="block mt-1"><input type="radio" name="ubicacion" value="Quito" <?= ($ubicacion ?? "") == "Quito" ? "checked" : "" ?>> Quito</label>
+                        <label class="block mt-1"><input type="radio" name="ubicacion" value="Cuenca" <?= ($ubicacion ?? "") == "Cuenca" ? "checked" : "" ?>> Cuenca</label>
+                        <label class="block mt-1"><input type="radio" name="ubicacion" value="" <?= ($ubicacion ?? "") == "" ? "checked" : "" ?>> Todas</label>
+                    </div>
                 </div>
+
+
+
+              <!-- Botones de acción -->
+              <div class="mt-4 flex gap-2">
+                  <button type="submit" class="flex-1 bg-[#1A4B8C] text-white py-2 rounded-lg font-bold">
+                      Aplicar filtros
+                  </button>
+                  <a href="catalogo.php" class="flex-1 text-center py-2 text-sm text-gray-600 bg-gray-100 rounded-lg font-medium hover:bg-gray-200">
+                      Restablecer
+                  </a>
+              </div>
+          </div>
             </form>
         </div>
 
@@ -267,6 +302,18 @@ $num = $stmt->rowCount();
             ?>
         </div>
     </main>
+
+
+
+
+
+
+
+
+
+
+
+
     <script>
         const btnFiltros = document.getElementById("btnFiltros");
         const menuFiltros = document.getElementById("menuFiltros");
