@@ -44,10 +44,6 @@ if (isset($_SESSION['usuario_id'])) {
         <a href="catalogo.php" class="hero-button">Explorar Catálogo</a>
     </section>
 
-
-
-
-
     <section class="py-12 bg-white text-center">
         <h2 class="text-3xl font-bold text-gray-800 mb-8">¿Cómo funciona ProServicios?</h2>
         <div class="flex flex-wrap justify-center gap-8">
@@ -69,16 +65,10 @@ if (isset($_SESSION['usuario_id'])) {
         </div>
     </section>
 
-
-
-
-
 <section id="precios" class="trending-section py-12 bg-gray-50">
     <div class="container mx-auto px-4">
         <h2 class="text-3xl font-bold text-gray-800 text-center mb-10">Cursos en Tendencia</h2>
         <div class="trending-cards grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-            
-            
             <div class="trending-card bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full">
                 <div class="trending-card-image h-32 bg-cover bg-center" style="background-image: url('https://via.placeholder.com/250x150/1A4B8C/FFFFFF?text=Piano');"></div>
                 
@@ -100,7 +90,6 @@ if (isset($_SESSION['usuario_id'])) {
                 </div>
             </div>
 
-            
             <div class="trending-card bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full">
                 <div class="trending-card-image h-32 bg-cover bg-center" style="background-image: url('https://via.placeholder.com/250x150/1A4B8C/FFFFFF?text=SEO');"></div>
                 <div class="p-5 flex flex-col flex-grow">
@@ -114,7 +103,6 @@ if (isset($_SESSION['usuario_id'])) {
                 </div>
             </div>
 
-            
             <div class="trending-card bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full">
                 <div class="trending-card-image h-32 bg-cover bg-center" style="background-image: url('https://via.placeholder.com/250x150/1A4B8C/FFFFFF?text=Masaje');"></div>
                 <div class="p-5 flex flex-col flex-grow">
@@ -128,7 +116,6 @@ if (isset($_SESSION['usuario_id'])) {
                 </div>
             </div>
 
-           
             <div class="trending-card bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full opacity-90">
                 <div class="trending-card-image h-32 bg-cover bg-center" style="background-image: url('https://via.placeholder.com/250x150/1A4B8C/FFFFFF?text=Pintura');"></div>
                 <div class="p-5 flex flex-col flex-grow">
@@ -146,7 +133,6 @@ if (isset($_SESSION['usuario_id'])) {
                 </div>
             </div>
 
-            
             <div class="trending-card bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col h-full">
                 <div class="trending-card-image h-32 bg-cover bg-center" style="background-image: url('https://via.placeholder.com/250x150/1A4B8C/FFFFFF?text=Cocina');"></div>
                 <div class="p-5 flex flex-col flex-grow">
@@ -163,26 +149,6 @@ if (isset($_SESSION['usuario_id'])) {
         </div>
     </div>
 </section>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
      <section class="py-16 bg-gray-100">
         <div class="container mx-auto px-4 max-w-6xl">
             <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">Contáctanos</h2>
@@ -239,30 +205,6 @@ if (isset($_SESSION['usuario_id'])) {
             </div>
         </div>
     </section>
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
      <footer class="bg-gray-800 text-white  py-6 mt-10">
              © Copyright  2025 ProServicios. Todos los derechos reservados.
     </footer>
