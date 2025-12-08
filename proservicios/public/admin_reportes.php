@@ -49,12 +49,12 @@ $dataServicios = json_encode(array_column($topServicios, 'cantidad'));
     <div class="stats-grid" style="grid-template-columns: 2fr 1fr;">
       
       <div class="stat-card">
-        <h3>💰 Evolución de Ingresos</h3>
+        <h3>Evolución de Ingresos</h3>
         <canvas id="chartIngresos"></canvas>
       </div>
 
       <div class="stat-card">
-        <h3>🔥 Top Servicios</h3>
+        <h3>Top Servicios</h3>
         <div style="height: 300px; display: flex; justify-content: center;">
              <canvas id="chartServicios"></canvas>
         </div>
