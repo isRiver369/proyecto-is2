@@ -125,3 +125,51 @@ WHERE servicio_id > 0;
 
 /* Restaurar seguridad de llaves foráneas */
 SET FOREIGN_KEY_CHECKS = 1;
+
+
+-- NUEVO
+USE proservicios_db;
+
+-- 1. Crear la tabla de Categorías
+CREATE TABLE IF NOT EXISTS `categorias` (
+  `categoria_id` int NOT NULL AUTO_INCREMENT,
+  `nombre_categoria` varchar(100) NOT NULL,
+  `fecha_creacion` timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`categoria_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Insertar algunas categorías base para no empezar vacíos
+INSERT INTO `categorias` (nombre_categoria) VALUES 
+('Música'), ('Tecnología'), ('Gastronomía'), ('Arte'), ('Bienestar');
+
+-- 3. Modificar la tabla Servicios para agregar la columna de categoría
+-- (Solo si no la has agregado antes)
+ALTER TABLE `servicios` 
+ADD COLUMN `categoria_id` int DEFAULT NULL AFTER `proveedor_id`;
+
+-- 4. Crear la relación (Llave Foránea)
+-- Si borras una categoría, el servicio NO se borra, solo se queda sin categoría (SET NULL)
+ALTER TABLE `servicios`
+ADD CONSTRAINT `fk_servicio_categoria`
+FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`categoria_id`)
+ON DELETE SET NULL;
+
+
+USE proservicios_db;
+
+-- 1. Crear tabla de configuración
+CREATE TABLE IF NOT EXISTS `configuracion` (
+  `id` int NOT NULL DEFAULT 1,
+  `nombre_sitio` varchar(100) DEFAULT 'ProServicios',
+  `email_admin` varchar(150) DEFAULT 'admin@proservicios.com',
+  `tasa_impuesto` decimal(5,2) DEFAULT 15.00, -- Ej: 15%
+  `moneda` varchar(5) DEFAULT '$',
+  `modo_mantenimiento` tinyint(1) DEFAULT 0, -- 0: No, 1: Sí
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Insertar la configuración inicial (Solo una vez)
+INSERT INTO `configuracion` (id, nombre_sitio, email_admin, tasa_impuesto, moneda, modo_mantenimiento)
+VALUES (1, 'ProServicios', 'admin@proservicios.com', 15.00, '$', 0)
+ON DUPLICATE KEY UPDATE id=1; 
+-- (El ON DUPLICATE evita errores si lo ejecutas dos veces)
