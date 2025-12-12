@@ -39,7 +39,10 @@ $dataServicios = json_encode(array_column($topServicios, 'cantidad'));
       <li><a href="admin.php">Dashboard</a></li>
       <li><a href="admin_usuarios.php">Usuarios</a></li>
       <li><a href="admin_servicios.php">Servicios</a></li>
+      <li><a href="admin_categorias.php">Categorías</a></li>
+      <li><a href="admin_proveedores.php">Proveedores</a></li>
       <li><a href="admin_reportes.php" class="active">Reportes</a></li>
+      <li><a href="admin_configuracion.php">Configuración</a></li>
     </ul>
   </aside>
 
@@ -67,24 +70,36 @@ $dataServicios = json_encode(array_column($topServicios, 'cantidad'));
             <h3>Detalle de Ingresos por Mes</h3>
             <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir Reporte</button>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Mes</th>
-                    <th>Ingresos Totales</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($ingresosMes as $dato): ?>
-                <tr>
-                    <td><?php echo $dato['mes']; ?></td>
-                    <td><strong>$<?php echo number_format($dato['total'], 2); ?></strong></td>
-                    <td><span class="status-badge status-success">Procesado</span></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <thead style="background-color: #f8f9fa;">
+        <tr>
+            <th style="padding: 12px; border-bottom: 2px solid #dee2e6;">Mes</th>
+            <th style="padding: 12px; border-bottom: 2px solid #dee2e6;">Ingresos Totales</th>
+            <th style="padding: 12px; border-bottom: 2px solid #dee2e6;">Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php if (empty($ingresosMes)): ?>
+            <tr>
+                <td colspan="3" style="text-align:center; padding: 20px; color: #666;">
+                    No hay ingresos registrados aún.
+                </td>
+            </tr>
+        <?php else: ?>
+            <?php foreach ($ingresosMes as $dato): ?>
+            <tr>
+                <td style="padding: 12px; border-bottom: 1px solid #eee;"><?php echo $dato['mes']; ?></td>
+                <td style="padding: 12px; border-bottom: 1px solid #eee; color: #1A4B8C; font-weight: bold;">
+                    $<?php echo number_format($dato['total'], 2); ?>
+                </td>
+                <td style="padding: 12px; border-bottom: 1px solid #eee;">
+                    <span class="status-badge status-success">Procesado</span>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </tbody>
+</table>
     </div>
 
   </main>

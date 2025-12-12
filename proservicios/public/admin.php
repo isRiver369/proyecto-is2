@@ -42,7 +42,10 @@ function getEstadoClass($estado) {
       <li><a href="admin.php" class="active">Dashboard</a></li>
       <li><a href="admin_usuarios.php">Usuarios</a></li>
       <li><a href="admin_servicios.php">Servicios</a></li>
+      <li><a href="admin_categorias.php">Categorías</a></li>
+      <li><a href="admin_proveedores.php">Proveedores</a></li>
       <li><a href="admin_reportes.php">Reportes</a></li>
+      <li><a href="admin_configuracion.php">Configuración</a></li>
     </ul>
   </aside>
 
@@ -50,10 +53,13 @@ function getEstadoClass($estado) {
     <h2 class="section-title">Dashboard General</h2>
 
     <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] == 'eliminado'): ?>
-        <div class="alert alert-success">✅ Reserva eliminada correctamente.</div>
+        <div class="alert alert-success">Reserva eliminada correctamente.</div>
     <?php endif; ?>
     <?php if (isset($_GET['error'])): ?>
-        <div class="alert alert-error">❌ No se pudo eliminar la reserva.</div>
+        <div class="alert alert-error">No se pudo eliminar la reserva.</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] == 'editado'): ?>
+      <div class="alert alert-success">La reserva ha sido actualizada correctamente.</div>
     <?php endif; ?>
 
     <div class="stats-grid">
@@ -98,7 +104,10 @@ function getEstadoClass($estado) {
                 </span>
             </td>
             <td class="action-buttons">
-                <a href="#" class="btn btn-primary">Editar</a>
+                <a href="editar_reserva.php?id=<?php echo $reserva['reserva_id']; ?>" 
+                  class="btn btn-primary">
+                  Editar
+                </a>
                 <a href="eliminar_reserva.php?id=<?php echo $reserva['reserva_id']; ?>" 
                    class="btn btn-danger"
                    onclick="return confirm('¿Eliminar reserva?');">Eliminar</a>

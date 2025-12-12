@@ -1,39 +1,51 @@
 <?php
-// Archivo: src/Servicios/Seguridad.php
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// src/Servicios/Seguridad.php
 
 class Seguridad {
     
-    // Método 1: Solo verifica que haya iniciado sesión (cualquier rol)
-    public static function verificarSesion() {
+    public static function iniciarSesionSiNoExiste() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+
+    public static function requerirRol($rolRequerido) {
+        self::iniciarSesionSiNoExiste();
+
+        // 1. Si no hay sesión, intentamos revivirla con la Cookie
+        if (!isset($_SESSION['usuario_id'])) {
+            self::intentarLoginConCookie();
+        }
+
+        // 2. Si AÚN no hay sesión después de intentar con la cookie, adiós.
         if (!isset($_SESSION['usuario_id'])) {
             header("Location: login.php");
             exit();
         }
-    }
 
-    // Método 2: Verifica sesión Y un rol específico
-    public static function requerirRol($rolRequerido) {
-        // 1. Primero verificamos que esté logueado
-        self::verificarSesion();
-
-        // 2. Verificamos si el rol coincide
-        // (Asumimos que $_SESSION['rol'] se guardó en el login)
-        if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== $rolRequerido) {
-            
-            // Si no tiene permiso, lo "regresamos" a su lugar correspondiente o al login
-            // Esto evita bucles de redirección
-            if (isset($_SESSION['rol']) && $_SESSION['rol'] === 'cliente') {
+        // 3. Verificar Rol (Lógica normal)
+        // Permitimos acceso si es el rol correcto O si es administrador (el admin suele poder ver todo)
+        if ($_SESSION['rol'] !== $rolRequerido && $_SESSION['rol'] !== 'administrador') {
+            // Si el cliente intenta entrar a panel admin, lo mandamos a su home
+            if ($_SESSION['rol'] === 'cliente') {
                 header("Location: menucliente.php");
-            } elseif (isset($_SESSION['rol']) && $_SESSION['rol'] === 'administrador') {
-                header("Location: admin.php"); 
             } else {
                 header("Location: login.php");
             }
             exit();
+        }
+    }
+
+    private static function intentarLoginConCookie() {
+        if (isset($_COOKIE['proservicios_remember'])) {
+            // Decodificamos el token (ID:Rol)
+            $datos = explode(':', base64_decode($_COOKIE['proservicios_remember']));
+            
+            if (count($datos) === 2) {
+                $_SESSION['usuario_id'] = $datos[0];
+                $_SESSION['rol'] = $datos[1];
+            
+            }
         }
     }
 }

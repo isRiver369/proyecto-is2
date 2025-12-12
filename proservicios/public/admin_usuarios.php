@@ -32,7 +32,10 @@ $usuarios = $dashboard->obtenerTodosLosUsuarios();
       <li><a href="admin.php">Dashboard</a></li>
       <li><a href="admin_usuarios.php" class="active">Usuarios</a></li>
       <li><a href="admin_servicios.php">Servicios</a></li>
+      <li><a href="admin_categorias.php">Categorías</a></li>
+      <li><a href="admin_proveedores.php">Proveedores</a></li>
       <li><a href="admin_reportes.php">Reportes</a></li>
+      <li><a href="admin_configuracion.php">Configuración</a></li>
     </ul>
   </aside>
 

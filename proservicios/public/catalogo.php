@@ -7,7 +7,7 @@ include_once '../src/Modelos/Servicio.php';
 $database = new Database();
 $db = $database->getConnection();
 $servicio = new Servicio($db);
-
+//sdsds
 // Capturar búsqueda del filtro
 $busqueda = isset($_GET['q']) ? $_GET['q'] : "";
 $horario = isset($_GET["horario"]) ? $_GET["horario"] : "";

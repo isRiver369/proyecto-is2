@@ -7,8 +7,6 @@ class PagoService {
     private $notificador;
 
     // APLICACIÓN DE DIP (Dependency Inversion Principle):
-    // No creamos las dependencias aquí dentro con 'new'.
-    // Las pedimos como parámetros. Esto hace al código flexible y testeable.
     // Usamos null por defecto para mantener compatibilidad si no se pasan.
     public function __construct($dbConn = null, $notificador = null) {
         
@@ -60,7 +58,8 @@ class PagoService {
             ]);
 
             // B. Actualizar reserva
-            $queryReserva = "UPDATE reservas SET estado = 'pagada', pagado = 1 WHERE reserva_id = :rid";
+            $queryReserva = "UPDATE reservas SET estado = 'pagada' WHERE reserva_id = :rid";
+            
             $stmtUpdate = $this->conn->prepare($queryReserva);
             $stmtUpdate->execute([':rid' => $reserva_id]);
 

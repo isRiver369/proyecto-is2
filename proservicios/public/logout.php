@@ -2,7 +2,9 @@
 session_start();
 session_destroy();
 
-// Ahora redirige a la página de inicio pública
-header("Location: menuvisitante.php"); 
+// Matar la cookie (poniendo la fecha en el pasado)
+setcookie('proservicios_remember', '', time() - 3600, "/");
+
+header("Location: login.php");
 exit();
 ?>

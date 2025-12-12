@@ -32,12 +32,18 @@ $servicios = $dashboard->obtenerTodosLosServicios();
       <li><a href="admin.php">Dashboard</a></li>
       <li><a href="admin_usuarios.php">Usuarios</a></li>
       <li><a href="admin_servicios.php" class="active">Servicios</a></li>
+      <li><a href="admin_categorias.php">Categorías</a></li>
+      <li><a href="admin_proveedores.php">Proveedores</a></li>
       <li><a href="admin_reportes.php">Reportes</a></li>
+      <li><a href="admin_configuracion.php">Configuración</a></li>
     </ul>
   </aside>
 
   <main class="main-content">
     <h2 class="section-title">Gestión de Servicios</h2>
+    <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] == 'editado'): ?>
+      <div class="alert alert-success">El servicio se actualizó correctamente.</div>
+    <?php endif; ?>
 
     <div class="table-container">
       <div class="table-header">
@@ -88,17 +94,21 @@ $servicios = $dashboard->obtenerTodosLosServicios();
                        class="btn btn-warning" 
                        style="font-size: 0.8rem;"
                        onclick="return confirm('¿Pausar este servicio? No aparecerá en el catálogo.');">
-                       ⏸ Pausar
+                       Pausar
                     </a>
                 <?php else: ?>
                     <a href="cambiar_estado_servicio.php?id=<?php echo $s['servicio_id']; ?>" 
                        class="btn btn-success" 
                        style="font-size: 0.8rem;">
-                       ▶ Activar
+                       Activar
                     </a>
                 <?php endif; ?>
                 
-                <a href="#" class="btn btn-primary" style="font-size: 0.8rem;">Editar</a>
+                <a href="editar_servicio.php?id=<?php echo $s['servicio_id']; ?>" 
+                  class="btn btn-primary" 
+                  style="font-size: 0.8rem;">
+                  Editar
+                </a>
             </td>
           </tr>
           <?php endforeach; ?>

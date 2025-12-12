@@ -9,7 +9,6 @@ class AdminDashboard {
         $database = new Database();
         $this->conn = $database->getConnection();
     }
-
     // Obtener los contadores de las tarjetas (KPIs)
     public function obtenerEstadisticas() {
         $stats = [];
@@ -38,7 +37,6 @@ class AdminDashboard {
 
         return $stats;
     }
-
     // Obtener las últimas 5 reservas con datos cruzados (JOINs)
     public function obtenerUltimasReservas() {
         $sql = "SELECT 
@@ -90,7 +88,6 @@ class AdminDashboard {
             return [];
         }
     }
-
     // Cambiar el rol de un usuario
     public function cambiarRolUsuario($id, $nuevoRol) {
         try {
@@ -121,7 +118,6 @@ class AdminDashboard {
             return [];
         }
     }
-
     // 2. Interruptor para Activar/Desactivar un servicio
     public function toggleEstadoServicio($id) {
         try {
@@ -144,7 +140,6 @@ class AdminDashboard {
             return [];
         }
     }
-
     // Crear un nuevo servicio en la BD
     public function crearServicio($proveedor_id, $nombre, $desc, $precio) {
         try {
@@ -163,23 +158,25 @@ class AdminDashboard {
             return false;
         }
     }
-    // Obtener ingresos agrupados por mes (Últimos 6 meses)
+    // Obtener ingresos agrupados por mes (CORREGIDO)
     public function obtenerIngresosPorMes() {
         try {
-            // DATE_FORMAT(fecha, '%Y-%m') agrupa por "2025-12", "2026-01", etc.
-            $sql = "SELECT DATE_FORMAT(p.fecha_pago, '%Y-%m') as mes, SUM(p.monto) as total 
+            // Unimos PAGOS con RESERVAS para obtener la fecha
+            $sql = "SELECT DATE_FORMAT(r.fecha_reserva, '%Y-%m') as mes, SUM(p.monto) as total 
                     FROM pagos p
+                    JOIN reservas r ON p.reserva_id = r.reserva_id
                     WHERE p.estado_pago = 'aprobado'
                     GROUP BY mes
                     ORDER BY mes ASC
                     LIMIT 6";
+            
             $stmt = $this->conn->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
+            die("Error SQL: " . $e->getMessage());
             return [];
         }
     }
-
     // Obtener los 5 servicios con más reservas
     public function obtenerTopServicios() {
         try {
@@ -193,6 +190,141 @@ class AdminDashboard {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return [];
+        }
+    }
+    // 1. Obtener un solo servicio por ID (Para llenar el formulario de edición)
+    public function obtenerServicioPorId($id) {
+        $sql = "SELECT * FROM servicios WHERE servicio_id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // 2. Actualizar un servicio existente
+    public function actualizarServicio($id, $nombre, $desc, $precio) {
+        try {
+            $sql = "UPDATE servicios 
+                    SET nombre_servicio = :nom, 
+                        descripcion = :desc, 
+                        precio = :precio 
+                    WHERE servicio_id = :id";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':nom', $nombre);
+            $stmt->bindParam(':desc', $desc);
+            $stmt->bindParam(':precio', $precio);
+            $stmt->bindParam(':id', $id);
+            
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    // Obtener una reserva específica por ID (Para editarla)
+    public function obtenerReservaPorId($id) {
+        $sql = "SELECT * FROM reservas WHERE reserva_id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    // Guardar cambios de la reserva
+    public function actualizarReserva($id, $fecha, $estado, $total) {
+        try {
+            $sql = "UPDATE reservas 
+                    SET fecha_reserva = :fecha, 
+                        estado = :estado, 
+                        total_pagar = :total 
+                    WHERE reserva_id = :id";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':fecha', $fecha);
+            $stmt->bindParam(':estado', $estado);
+            $stmt->bindParam(':total', $total);
+            $stmt->bindParam(':id', $id);
+            
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    // --- MÓDULO CATEGORÍAS ---
+    // Obtener todas las categorías
+    public function obtenerCategorias() {
+        $sql = "SELECT * FROM categorias ORDER BY categoria_id DESC";
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    // Crear nueva categoría
+    public function crearCategoria($nombre) {
+        try {
+            $sql = "INSERT INTO categorias (nombre_categoria) VALUES (:nombre)";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':nombre', $nombre);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    // Eliminar categoría
+    public function eliminarCategoria($id) {
+        try {
+            $sql = "DELETE FROM categorias WHERE categoria_id = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    // --- MÓDULO PROVEEDORES ---
+    // Obtener lista de proveedores con conteo de sus servicios
+    public function obtenerProveedoresDetallados() {
+        try {
+            // Usamos LEFT JOIN para contar servicios. Si no tienen, saldrá 0.
+            $sql = "SELECT u.*, COUNT(s.servicio_id) as cantidad_servicios
+                    FROM usuarios u
+                    LEFT JOIN servicios s ON u.usuario_id = s.proveedor_id
+                    WHERE u.rol = 'proveedor'
+                    GROUP BY u.usuario_id
+                    ORDER BY cantidad_servicios DESC"; // Los más activos primero
+            
+            $stmt = $this->conn->query($sql);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    // --- MÓDULO CONFIGURACIÓN ---
+    // 1. Obtener la configuración actual
+    public function obtenerConfiguracion() {
+        // Siempre traemos la fila con ID 1
+        $sql = "SELECT * FROM configuracion WHERE id = 1";
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    // 2. Guardar cambios globales
+    public function actualizarConfiguracion($nombre, $email, $impuesto, $moneda, $mantenimiento) {
+        try {
+            $sql = "UPDATE configuracion 
+                    SET nombre_sitio = :nom, 
+                        email_admin = :email, 
+                        tasa_impuesto = :tax,
+                        moneda = :mon,
+                        modo_mantenimiento = :mant
+                    WHERE id = 1";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':nom', $nombre);
+            $stmt->bindParam(':email', $email);
+            $stmt->bindParam(':tax', $impuesto);
+            $stmt->bindParam(':mon', $moneda);
+            $stmt->bindParam(':mant', $mantenimiento);
+            
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
         }
     }
 }

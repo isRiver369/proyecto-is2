@@ -9,13 +9,19 @@ $successMsg = "";
 if (isset($_GET['registro']) && $_GET['registro'] == 'exitoso') {
     $successMsg = "¡Cuenta creada! Ahora puedes iniciar sesión.";
 }
-
 // Procesar Login
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $auth = new AuthService();
     $resultado = $auth->login($_POST['email'], $_POST['password']);
 
     if ($resultado['success']) {
+        // Login exitoso: Guardar en sesión
+        if (isset($_POST['remember'])) {
+            // Creamos el token con ID y Rol
+            $token = base64_encode($_SESSION['usuario_id'] . ':' . $_SESSION['rol']);
+            // Creamos la cookie que dura 30 días (86400 segs * 30)
+            setcookie('proservicios_remember', $token, time() + (86400 * 30), "/"); 
+        }
         // Verificamos el rol guardado en la sesión para decidir a dónde ir
         $rol = $_SESSION['rol'];
 
@@ -33,7 +39,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 ?>
 
-<!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -60,13 +65,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <div class="w-64 h-64 bg-white rounded-full flex justify-center items-center shadow-2xl mb-16 relative">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-80 h-80">
-                        <!-- Fondo (Escudo/Contenedor) - Invertido para que resalte sobre azul -->
                         <path d="M100 10 C150 10, 190 50, 190 100 C190 150, 150 190, 100 190 C50 190, 10 150, 10 100 C10 50, 50 10, 100 10 Z" fill="#FFFFFF"/>
                         
-                        <!-- Elemento 1: Libro (Cursos) -->
                         <path d="M60 50 Q80 45, 100 50 L100 150 Q80 155, 60 150 L60 50 M100 50 Q120 45, 140 50 L140 150 Q120 155, 100 150" fill="#1A4B8C" />
                         
-                        <!-- Elemento 2: Checkmark (Reservas) -->
                         <path d="M80 100 L110 130 L160 70 L145 55 L110 100 L95 85 Z" fill="#17A2B8" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
                     </svg>
         </div>
@@ -115,7 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 <div class="flex justify-between items-center text-sm">
                     <label class="flex items-center text-gray-500 cursor-pointer">
-                        <input type="checkbox" class="mr-2 rounded border-gray-300 text-brand focus:ring-brand">
+                        <input type="checkbox" name="remember" class="mr-2 rounded border-gray-300 text-brand focus:ring-brand">
                         Recordarme
                     </label>
                     <a href="#" class="text-brand hover:underline font-medium">¿Olvidaste tu contraseña?</a>

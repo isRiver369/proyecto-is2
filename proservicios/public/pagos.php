@@ -2,9 +2,24 @@
 // 1. SEGURIDAD Y DEPENDENCIAS
 require_once '../src/Servicios/Seguridad.php';
 require_once '../src/Servicios/PagoService.php';
-require_once '../src/Servicios/PaymentStrategies.php'; // <--- NUEVO: Incluimos las estrategias
+require_once '../src/Servicios/PaymentStrategies.php'; 
+require_once '../src/Servicios/AuthService.php';
 
 Seguridad::requerirRol('cliente');
+
+// Verificamos que esté logueado
+if (!isset($_SESSION['usuario_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// OBTENEMOS LOS DATOS GUARDADOS
+$auth = new AuthService();
+$datosUsuario = $auth->obtenerUsuarioPorId($_SESSION['usuario_id']);
+
+// Preparamos las variables (si no tiene teléfono guardado, queda vacío)
+$telefonoPre = isset($datosUsuario['telefono']) ? $datosUsuario['telefono'] : '';
+$direccionPre = isset($datosUsuario['direccion']) ? $datosUsuario['direccion'] : ''; // Si tuvieras dirección guardada
 
 // 2. OBTENER DATOS DE LA RESERVA
 if (!isset($_GET['reserva_id'])) {
@@ -138,24 +153,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-1">Nombre Completo</label>
-                                <input type="text" value="<?php echo $_SESSION['nombre_completo']; ?>" class="w-full border bg-gray-100 rounded px-3 py-2 text-gray-600" readonly>
+                                <input type="text" name="nombre" 
+                                       value="<?php echo htmlspecialchars($datosUsuario['nombre'] . ' ' . $datosUsuario['apellido']); ?>" 
+                                       readonly 
+                                       class="w-full border bg-gray-100 rounded px-3 py-2 text-gray-500 focus:outline-none cursor-not-allowed">
                             </div>
+
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico</label>
-                                <input type="email" value="<?php echo $_SESSION['email']; ?>" class="w-full border bg-gray-100 rounded px-3 py-2 text-gray-600" readonly>
+                                <input type="email" name="email"
+                                       value="<?php echo htmlspecialchars($datosUsuario['email']); ?>" 
+                                       readonly 
+                                       class="w-full border bg-gray-100 rounded px-3 py-2 text-gray-500 focus:outline-none cursor-not-allowed">
                             </div>
+
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-1">Cédula / RUC *</label>
-                                <input type="text" name="billing_cedula" id="cedula" placeholder="0999999999" class="w-full border rounded px-3 py-2 focus:border-[#1A4B8C] outline-none">
+                                <input type="text" 
+                                    name="billing_cedula" 
+                                    id="cedula" 
+                                    placeholder="Ingrese 10 o 13 dígitos" 
+                                    maxlength="13" 
+                                    class="w-full border rounded px-3 py-2 focus:border-[#1A4B8C] outline-none transition-colors"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             </div>
+
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-1">Teléfono</label>
-                                <input type="text" name="billing_phone" placeholder="099..." class="w-full border rounded px-3 py-2 focus:border-[#1A4B8C] outline-none">
+                                <input type="text" name="telefono" 
+                                       placeholder="099..."
+                                       value="<?php echo htmlspecialchars($telefonoPre); ?>" 
+                                       class="w-full border rounded px-3 py-2 focus:border-[#1A4B8C] outline-none transition-colors">
                             </div>
+
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-bold text-gray-700 mb-1">Dirección *</label>
-                                <input type="text" name="billing_address" id="direccion" placeholder="Calle Principal y Secundaria" class="w-full border rounded px-3 py-2 focus:border-[#1A4B8C] outline-none">
+                                <input type="text" name="billing_address" id="direccion" 
+                                       placeholder="Calle Principal y Secundaria" 
+                                       class="w-full border rounded px-3 py-2 focus:border-[#1A4B8C] outline-none transition-colors">
                             </div>
+
                         </div>
                         <div class="mt-8 flex justify-end">
                             <button type="button" onclick="validarPaso1()" class="bg-[#1A4B8C] text-white px-6 py-3 rounded-lg font-bold hover:opacity-90 transition">
@@ -188,21 +225,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div id="card-details" class="bg-gray-50 p-5 rounded-lg border mb-6">
                             <div class="mb-4">
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Número de Tarjeta</label>
-                                <input type="text" name="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19" class="w-full border rounded px-3 py-2">
+                                <input type="text" 
+                                    name="cardNumber" 
+                                    id="cardNumber" 
+                                    placeholder="0000 0000 0000 0000" 
+                                    maxlength="19" 
+                                    class="w-full border rounded px-3 py-2 transition-colors focus:border-[#1A4B8C] outline-none">
                             </div>
+                            
                             <div class="grid grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Expiración</label>
-                                    <input type="text" name="expiry" placeholder="MM/YY" maxlength="5" class="w-full border rounded px-3 py-2">
+                                    <input type="text" 
+                                        name="expiry" 
+                                        id="cardExpiry" 
+                                        placeholder="MM/YY" 
+                                        maxlength="5" 
+                                        class="w-full border rounded px-3 py-2 transition-colors focus:border-[#1A4B8C] outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">CVV</label>
-                                    <input type="text" name="cvv" placeholder="123" maxlength="4" class="w-full border rounded px-3 py-2">
+                                    <input type="text" 
+                                        name="cvv" 
+                                        id="cardCvv" 
+                                        placeholder="123" 
+                                        maxlength="4" 
+                                        class="w-full border rounded px-3 py-2 transition-colors focus:border-[#1A4B8C] outline-none">
                                 </div>
                             </div>
+                            
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Titular</label>
-                                <input type="text" name="cardName" placeholder="Como aparece en la tarjeta" class="w-full border rounded px-3 py-2">
+                                <input type="text" name="cardName" placeholder="Como aparece en la tarjeta" class="w-full border rounded px-3 py-2 focus:border-[#1A4B8C] outline-none">
                             </div>
                         </div>
 
@@ -218,12 +272,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                         <div class="flex justify-between mt-8">
                             <button type="button" onclick="changeStep(1)" class="text-gray-500 font-bold hover:underline">Atrás</button>
-                            <button type="submit" class="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg transform transition hover:scale-105">
-                                Pagar $<?php echo number_format($total, 2); ?>
+                            <button type="button" onclick="irAConfirmar()" class="bg-[#1A4B8C] text-white px-8 py-3 rounded-lg font-bold hover:opacity-90 shadow-lg">
+                                Revisar Orden
                             </button>
                         </div>
                     </div>
+                    <div id="step3" class="step-block">
+                        <h2 class="text-xl font-bold text-[#1A4B8C] mb-6 border-b pb-2">Confirmar Pedido</h2>
+                        
+                        <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 space-y-4 mb-6">
+                            <div class="flex justify-between border-b pb-2">
+                                <span class="text-gray-600">Cliente:</span>
+                                <span class="font-bold text-gray-800" id="resumen-nombre"></span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2">
+                                <span class="text-gray-600">Enviar factura a:</span>
+                                <span class="font-bold text-gray-800 text-right" id="resumen-correo"></span>
+                            </div>
+                            <div class="flex justify-between border-b pb-2">
+                                <span class="text-gray-600">Cédula/RUC:</span>
+                                <span class="font-bold text-gray-800" id="resumen-cedula"></span>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <p class="text-sm text-gray-500 uppercase font-bold mb-2">Método de Pago Seleccionado</p>
+                                <div class="flex items-center bg-white p-3 rounded border border-blue-100">
+                                    <span id="resumen-metodo-icon" class="text-2xl mr-3">💳</span>
+                                    <div>
+                                        <p class="font-bold text-[#1A4B8C]" id="resumen-metodo-titulo">Tarjeta de Crédito</p>
+                                        <p class="text-sm text-gray-500" id="resumen-metodo-detalle">**** **** **** 0000</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
+                        <div class="flex items-start mb-6 bg-yellow-50 p-3 rounded text-sm text-yellow-800">
+                            <input type="checkbox" required class="mt-1 mr-2" id="check-terms">
+                            <label for="check-terms">
+                                Confirmo que los datos son correctos y acepto realizar el pago por el monto total de 
+                                <strong class="text-black">$<?php echo number_format($total, 2); ?></strong>.
+                            </label>
+                        </div>
+
+                        <div class="flex justify-between mt-8">
+                            <button type="button" onclick="changeStep(2)" class="text-gray-500 font-bold hover:underline">Atrás</button>
+                            
+                            <button type="submit" class="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg transform transition hover:scale-105 flex items-center gap-2">
+                                <span></span> Confirmar y Pagar
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
 
@@ -309,6 +407,146 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         
         document.querySelector('.radio-option').classList.add('selected-method');
+
+        // Reemplaza tu función validarPaso1 existente por esta:
+        function validarPaso1() {
+            const cedula = document.getElementById('cedula').value;
+            const dir = document.getElementById('direccion').value;
+            
+            // 1. Validar que no estén vacíos
+            if(cedula.trim() === '' || dir.trim() === '') {
+                alert('Por favor completa la Cédula y la Dirección para continuar.');
+                return;
+            }
+
+            // 2. NUEVO: Validar longitud exacta (10 para Cédula, 13 para RUC)
+            if (cedula.length !== 10 && cedula.length !== 13) {
+                alert('Error: La Cédula debe tener 10 dígitos o el RUC 13 dígitos.');
+                // Opcional: poner el borde rojo para indicar error
+                document.getElementById('cedula').style.borderColor = 'red';
+                return;
+            }
+
+            // Si todo está bien, quitamos el rojo (por si acaso) y avanzamos
+            document.getElementById('cedula').style.borderColor = '#e5e7eb'; // Color gris original
+            changeStep(2);
+        }
+
+        // --- LÓGICA DE FORMATO DE TARJETA ---
+        document.addEventListener('DOMContentLoaded', function() {
+        
+        const inputCard = document.getElementById('cardNumber');
+        const inputExpiry = document.getElementById('cardExpiry');
+        const inputCvv = document.getElementById('cardCvv');
+
+        // 1. Formato Tarjeta: "0000 0000 0000 0000"
+        if(inputCard) {
+            inputCard.addEventListener('input', function(e) {
+                // Eliminamos todo lo que no sea número
+                let value = e.target.value.replace(/\D/g, '');
+                
+                // Limitamos a 16 dígitos reales
+                value = value.substring(0, 16);
+                
+                // Agregamos espacio cada 4 dígitos
+                // La expresión regular /.{1,4}/g busca grupos de 4 caracteres
+                let sections = value.match(/.{1,4}/g);
+                
+                if (sections) {
+                    e.target.value = sections.join(' ');
+                } else {
+                    e.target.value = value;
+                }
+            });
+        }
+
+        // 2. Formato Expiración: "MM/YY"
+        if(inputExpiry) {
+            inputExpiry.addEventListener('input', function(e) {
+                // Eliminamos todo lo que no sea número
+                let value = e.target.value.replace(/\D/g, '');
+                
+                // Limitamos a 4 dígitos (MMYY)
+                value = value.substring(0, 4);
+
+                // Si ya escribió más de 2 números, ponemos la barra
+                if (value.length >= 3) {
+                    e.target.value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                } else {
+                    e.target.value = value;
+                }
+            });
+            
+            // Validar que el mes no sea mayor a 12 (Opcional, mejora UX)
+            inputExpiry.addEventListener('blur', function(e) {
+               let value = e.target.value.replace(/\D/g, '');
+               if(value.length >= 2) {
+                   let mes = parseInt(value.substring(0, 2));
+                   if(mes > 12 || mes === 0) {
+                       alert('Mes inválido');
+                       e.target.value = '';
+                   }
+               }
+            });
+        }
+
+        // 3. Formato CVV: Solo números
+        if(inputCvv) {
+            inputCvv.addEventListener('input', function(e) {
+                e.target.value = e.target.value.replace(/\D/g, '');
+            });
+        }
+    });
+    // --- FIN LÓGICA DE FORMATO DE TARJETA ---
+    function irAConfirmar() {
+        // 1. Validar que haya llenado el paso 2 (Tarjeta o Transferencia)
+        const metodo = document.querySelector('input[name="payment-method"]:checked').value;
+        
+        if (metodo === 'tarjeta') {
+            const cardNum = document.getElementById('cardNumber').value;
+            const expiry = document.getElementById('cardExpiry').value;
+            const cvv = document.getElementById('cardCvv').value;
+            
+            if (cardNum.length < 15 || expiry.length < 4 || cvv.length < 3) {
+                alert("Por favor completa los datos de la tarjeta correctamente.");
+                return;
+            }
+            
+            // Llenar resumen visual
+            document.getElementById('resumen-metodo-titulo').innerText = "Tarjeta de Crédito / Débito";
+            // Mostrar solo los últimos 4 dígitos
+            const last4 = cardNum.slice(-4);
+            document.getElementById('resumen-metodo-detalle').innerText = `Terminada en **** ${last4} | Exp: ${expiry}`;
+            document.getElementById('resumen-metodo-icon').innerText = "💳";
+        } 
+        else {
+            // Es transferencia
+            const archivo = document.querySelector('input[name="voucher"]').value;
+            if (archivo === '') {
+                alert("Por favor adjunta la foto del comprobante.");
+                return;
+            }
+            document.getElementById('resumen-metodo-titulo').innerText = "Transferencia Bancaria";
+            document.getElementById('resumen-metodo-detalle').innerText = "Comprobante adjuntado para validación.";
+            document.getElementById('resumen-metodo-icon').innerText = "🏦";
+        }
+
+        // 2. Copiar datos del Paso 1 al Resumen
+        // Nota: 'nombre' es el name del input en paso 1
+        const nombre = document.querySelector('input[name="nombre"]').value; 
+        const email = document.querySelector('input[name="email"]').value;
+        const cedula = document.getElementById('cedula').value;
+
+        document.getElementById('resumen-nombre').innerText = nombre;
+        document.getElementById('resumen-correo').innerText = email;
+        document.getElementById('resumen-cedula').innerText = cedula;
+
+        // 3. Avanzar al paso 3
+        changeStep(3);
+    }
+
+
     </script>
+    
 </body>
 </html>
