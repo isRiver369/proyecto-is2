@@ -86,3 +86,19 @@ MENSAJE:
 Hola Freddy Oswaldo, tu pago de $25 para la reserva #15 ha sido confirmado.
 --------------------------------------------------
 
+--------------------------------------------------
+FECHA: 2025-12-13 03:31:57
+PARA: freddy@gmail.com
+ASUNTO: Pago Exitoso - ProServicios
+MENSAJE:
+Hola Freddy Mbappe, tu pago de $18 para la reserva #7 ha sido confirmado.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-12-13 03:35:54
+PARA: freddy@gmail.com
+ASUNTO: Pago Exitoso - ProServicios
+MENSAJE:
+Hola Freddy Mbappe, tu pago de $45 para la reserva #8 ha sido confirmado.
+--------------------------------------------------
+
