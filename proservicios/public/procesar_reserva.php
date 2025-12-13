@@ -42,26 +42,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['servicio_id'])) {
         );
 
         // 6. MANEJAR LA RESPUESTA (LÓGICA NUEVA)
-        
+
         // Caso A: No hay cupo
         if ($resultado === "sin_cupo") {
             header("Location: catalogo.php?error=sin_cupo");
             exit();
         } 
-        
+
         // Caso B: Éxito (nos devolvió el ID de la reserva)
         elseif ($resultado) {
             // REDIRECCIÓN CORRECTA: Vamos a PAGOS con el ID de la reserva
             header("Location: pagos.php?reserva_id=" . $resultado);
             exit();
         } 
-        
+
         // Caso C: Fallo genérico
         else {
             header("Location: catalogo.php?error=fallo_reserva");
             exit();
         }
-
+    
     } catch (Exception $e) {
         // Si hay error de sistema (BD caída, etc)
         error_log("Error al procesar reserva: " . $e->getMessage());

@@ -102,3 +102,19 @@ MENSAJE:
 Hola Freddy Mbappe, tu pago de $45 para la reserva #8 ha sido confirmado.
 --------------------------------------------------
 
+--------------------------------------------------
+FECHA: 2025-12-13 17:37:22
+PARA: alcastillo@gmail.com
+ASUNTO: Pago Exitoso - ProServicios
+MENSAJE:
+Hola Alejandro José, tu pago de $12 para la reserva #4 ha sido confirmado.
+--------------------------------------------------
+
+--------------------------------------------------
+FECHA: 2025-12-13 17:43:27
+PARA: alcastillo@gmail.com
+ASUNTO: Pago Exitoso - ProServicios
+MENSAJE:
+Hola Alejandro José, tu pago de $75 para la reserva #5 ha sido confirmado.
+--------------------------------------------------
+

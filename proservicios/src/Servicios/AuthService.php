@@ -114,19 +114,53 @@ class AuthService {
         return ["success" => false, "message" => "Error al actualizar los datos."];
     }
 
-    // Actualizar perfil extendido (Proveedor)
-    public function actualizarPerfilProveedor($id, $bio, $portafolio) {
-        $query = "UPDATE " . $this->table_name . " 
-                  SET bio = :bio, portafolio_url = :url 
-                  WHERE usuario_id = :id";
-        
+    // Obtener datos del perfil del proveedor desde 'usuarios'
+    public function obtenerProveedorInfo($usuario_id) {
+        $query = "SELECT biografia, enlace_portafolio, contacto 
+                FROM proveedores_info 
+                WHERE proveedor_id = :id LIMIT 1";
+
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":bio", $bio);
-        $stmt->bindParam(":url", $portafolio);
+        $stmt->bindParam(":id", $usuario_id);
+        $stmt->execute();
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function actualizarPerfilProveedor($id, $bio, $portafolio, $contacto) {
+        // 1. Verifica si ya existe fila en proveedores_info
+        $query = "SELECT proveedor_id FROM proveedores_info WHERE proveedor_id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":id", $id);
-        
+        $stmt->execute();
+
+        $existe = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // 2. Si no existe → insertar
+        if (!$existe) {
+            $query = "INSERT INTO proveedores_info (proveedor_id, biografia, enlace_portafolio, contacto)
+                    VALUES (:id, :bio, :portafolio, :contacto)";
+        } 
+        // 3. Si existe → actualizar
+        else {
+            $query = "UPDATE proveedores_info
+                    SET biografia = :bio,
+                        enlace_portafolio = :portafolio,
+                        contacto = :contacto
+                    WHERE proveedor_id = :id";
+        }
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(":id", $id);
+        $stmt->bindParam(":bio", $bio);
+        $stmt->bindParam(":portafolio", $portafolio);
+        $stmt->bindParam(":contacto", $contacto);
+
         return $stmt->execute();
     }
+
+
 
     // Cerrar Sesión
     public function logout() {

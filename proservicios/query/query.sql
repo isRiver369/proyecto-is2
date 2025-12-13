@@ -15,7 +15,7 @@ CREATE TABLE `categorias` (
   `nombre_categoria` varchar(100) NOT NULL,
   `fecha_creacion` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`categoria_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `categorias` (nombre_categoria) VALUES 
 ('Música'), ('Tecnología'), ('Gastronomía'), ('Arte'), ('Bienestar');
@@ -32,16 +32,14 @@ CREATE TABLE `usuarios` (
   `password_hash` varchar(255) NOT NULL,
   `rol` enum('cliente','proveedor','administrador') DEFAULT 'cliente',
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `bio` text,
-  `portafolio_url` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`usuario_id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `usuarios` VALUES 
-(1,'Matias Obed','Peñaherrera Gonzalez','matiaspg@gmail.com','0923244434','$2y$10$0DPgb7VkiPUE6Z2VNpHhm.vK9sojJGU7mI.I6aqjrtqJvH4edzogq','proveedor','2025-11-30 03:21:08','Mi historia empieza en esta universidad','https://matiaspg.com'),
-(2,'Carlos Marcos','Zambrano Bravo','carlos@gmail.com','0944122234','$2y$10$z5lTdsRPbW9ROQXpkqr/0Oo7PXWtrWHRqlbKWcUeM88uZusiCQ8cW','cliente','2025-11-30 03:59:25',NULL,NULL),
-(3,'Alejandro José','Castillo López','alcastillo@gmail.com','0973724438','$2y$10$AopTe21r3wDHs1UmJCZvxenT3i3QMq.yJACmjC19BwKlnLw.N6Mju','proveedor','2025-12-03 04:24:25',NULL,NULL);
+(1,'Matias Obed','Peñaherrera Gonzalez','matiaspg@gmail.com','0923244434','$2y$10$0DPgb7VkiPUE6Z2VNpHhm.vK9sojJGU7mI.I6aqjrtqJvH4edzogq','proveedor','2025-11-30 03:21:08'),
+(2,'Carlos Marcos','Zambrano Bravo','carlos@gmail.com','0944122234','$2y$10$z5lTdsRPbW9ROQXpkqr/0Oo7PXWtrWHRqlbKWcUeM88uZusiCQ8cW','cliente','2025-11-30 03:59:25'),
+(3,'Alejandro José','Castillo López','alcastillo@gmail.com','0973724438','$2y$10$AopTe21r3wDHs1UmJCZvxenT3i3QMq.yJACmjC19BwKlnLw.N6Mju','proveedor','2025-12-03 04:24:25');
 
 /* =============================================
    3. TABLA: SERVICIOS (Modificada con tus requisitos)
@@ -52,12 +50,14 @@ CREATE TABLE `servicios` (
   `categoria_id` int DEFAULT NULL, /* Agregado directamente */
   `nombre_servicio` varchar(150) NOT NULL,
   `descripcion` text,
+  `descripcion_breve` varchar(400) DEFAULT NULL,
+  `modalidad` varchar(50) DEFAULT NULL,
+  `ubicacion` varchar(255) DEFAULT NULL,
   `precio` decimal(10,2) NOT NULL,
   `disponible` tinyint(1) DEFAULT '1',
   `cupo_maximo` int DEFAULT '5', /* Modificado default a 5 */
   `cupos_restantes` int DEFAULT '5', /* Columna nueva agregada aquí */
-  `modalidad` varchar(50) DEFAULT 'Presencial', /* NUEVO: Modalidad */
-  `fecha_inicio` date DEFAULT NULL,
+  `fecha_inicio` date DEFAULT NULL, 
   `fecha_fin` date DEFAULT NULL,
   `horario` varchar(255) DEFAULT NULL, /* Guardaremos opciones separadas por coma */
   `politicas` text,
@@ -66,7 +66,7 @@ CREATE TABLE `servicios` (
   KEY `fk_servicio_categoria` (`categoria_id`),
   CONSTRAINT `servicios_ibfk_1` FOREIGN KEY (`proveedor_id`) REFERENCES `usuarios` (`usuario_id`),
   CONSTRAINT `fk_servicio_categoria` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`categoria_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Datos de servicios (Cupos ajustados entre 3 y 5, Modalidad Presencial, Horarios separados)
 INSERT INTO `servicios` 
@@ -97,7 +97,7 @@ CREATE TABLE `reservas` (
   KEY `servicio_id` (`servicio_id`),
   CONSTRAINT `reservas_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`usuario_id`),
   CONSTRAINT `reservas_ibfk_2` FOREIGN KEY (`servicio_id`) REFERENCES `servicios` (`servicio_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `reservas` (reserva_id, usuario_id, servicio_id, fecha_reserva, total_pagar, estado, horario_elegido) VALUES 
 (1,3,9,'2025-12-01',18.00,'pagada', 'Mañana (08:00 - 12:00)'),
@@ -116,14 +116,45 @@ CREATE TABLE `pagos` (
   PRIMARY KEY (`pago_id`),
   KEY `reserva_id` (`reserva_id`),
   CONSTRAINT `pagos_ibfk_1` FOREIGN KEY (`reserva_id`) REFERENCES `reservas` (`reserva_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `pagos` VALUES 
 (1,4,18.00,'tarjeta','aprobado'),
 (2,9,18.00,'tarjeta','aprobado');
 
 /* =============================================
-   6. TABLA: CONFIGURACIÓN
+   6. TABLA: EVENTOS
+   ============================================= */
+CREATE TABLE `eventos` (
+  `evento_id` int NOT NULL AUTO_INCREMENT,
+  `proveedor_id` int DEFAULT NULL,
+  `nombre_evento` varchar(255) DEFAULT NULL,
+  `descripcion` text DEFAULT NULL,
+  `fecha_creacion` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `dia` varchar(20) NOT NULL,
+  `hora` int NOT NULL,
+  PRIMARY KEY (`evento_id`),
+  KEY `proveedor_id` (`proveedor_id`),
+  CONSTRAINT `fk_eventos_usuarios` FOREIGN KEY (`proveedor_id`) REFERENCES `usuarios` (`usuario_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/* =============================================
+   7. TABLA: PROVEEDORES INFORMACIÓN
+   ============================================= */
+CREATE TABLE proveedores_info (
+  `proveedor_id` int NOT NULL,
+  `biografia` text,
+  `enlace_portafolio` varchar(255) DEFAULT NULL,
+  `contacto` varchar(255) DEFAULT NULL,
+  `fecha_actualizacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (`proveedor_id`),
+  CONSTRAINT `proveedores_info_ibfk_1` FOREIGN KEY (`proveedor_id`) REFERENCES `usuarios` (`usuario_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+/* =============================================
+   8. TABLA: CONFIGURACIÓN
    ============================================= */
 CREATE TABLE `configuracion` (
   `id` int NOT NULL DEFAULT 1,
@@ -132,7 +163,7 @@ CREATE TABLE `configuracion` (
   `tasa_impuesto` decimal(5,2) DEFAULT 15.00,
   `moneda` varchar(5) DEFAULT '$',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `configuracion` (id, nombre_sitio, email_admin, tasa_impuesto, moneda)
 VALUES (1, 'ProServicios', 'admin@proservicios.com', 15.00, '$')
