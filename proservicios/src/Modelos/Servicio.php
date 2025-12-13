@@ -7,7 +7,7 @@ class Servicio {
         $this->conn = $db;
     }
 
-    // LEER: Obtener servicios de un proveedor específico
+    // LEER: Obtener servicios de un proveedor
     public function obtenerPorProveedor($proveedor_id) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE proveedor_id = ? ORDER BY servicio_id DESC";
         $stmt = $this->conn->prepare($query);
@@ -16,110 +16,98 @@ class Servicio {
         return $stmt;
     }
 
-    // Método avanzado con Filtros Dinámicos
-    public function obtenerTodos($busqueda = "", $horario = "", $precio_rango = "", $disponibilidad = "") {
+    // FILTROS: Ahora usa la columna REAL de 'modalidad'
+    public function obtenerTodos($busqueda = "", $horario = "", $precioRango = "", $disponibilidad = "", $modalidad = "") {
         
-        // 1. Consulta Base con Cálculo de Cupos
-        $query = "SELECT s.*, 
-                  (s.cupo_maximo - (
-                      SELECT COUNT(*) 
-                      FROM reservas r 
-                      WHERE r.servicio_id = s.servicio_id 
-                      AND r.estado != 'cancelada'
-                  )) as cupos_restantes
-                  FROM " . $this->table_name . " s
-                  WHERE 1=1"; // Truco para concatenar 'AND' fácilmente
+        $sql = "SELECT * FROM " . $this->table_name . " WHERE 1=1";
+        $params = [];
 
-        // 2. Filtros WHERE (Datos estáticos)
-        
-        // Búsqueda por texto
+        // 1. BÚSQUEDA
         if (!empty($busqueda)) {
-            $query .= " AND (s.nombre_servicio LIKE :busqueda OR s.descripcion LIKE :busqueda)";
+            $sql .= " AND (nombre_servicio LIKE ? OR descripcion LIKE ?)";
+            $busquedaParam = "%{$busqueda}%";
+            $params[] = $busquedaParam;
+            $params[] = $busquedaParam;
         }
 
-        // Filtro por Horario (Busca coincidencias parciales, ej: 'Mañana' dentro de 'Mañana,Tarde')
+        // 2. HORARIO (Busca texto parcial: 'Mañana', 'Tarde')
         if (!empty($horario)) {
-            $query .= " AND s.horario LIKE :horario";
+            $sql .= " AND horario LIKE ?";
+            $params[] = "%{$horario}%";
         }
 
-        // Filtro por Precio (Rango 'min-max')
-        if (!empty($precio_rango)) {
-            $rango = explode('-', $precio_rango);
-            if (count($rango) == 2) {
-                $query .= " AND s.precio >= :p_min AND s.precio <= :p_max";
+        // 3. MODALIDAD (AHORA SÍ ES UNA COLUMNA REAL)
+        if (!empty($modalidad)) {
+            $sql .= " AND modalidad = ?";
+            $params[] = $modalidad;
+        }
+
+        // 4. PRECIO
+        if (!empty($precioRango)) {
+            $rangos = explode('-', $precioRango);
+            if (count($rangos) == 2) {
+                $sql .= " AND precio BETWEEN ? AND ?";
+                $params[] = $rangos[0];
+                $params[] = $rangos[1];
             }
         }
 
-        // 3. Filtros HAVING (Para columnas calculadas como 'cupos_restantes')
-        
-        if ($disponibilidad === 'abierto') {
-            // Mostrar solo si tiene cupos Y está marcado como disponible
-            $query .= " HAVING cupos_restantes > 0 AND s.disponible = 1";
-        } elseif ($disponibilidad === 'cerrado') {
-            // Mostrar si NO tiene cupos O está marcado como no disponible
-            $query .= " HAVING (cupos_restantes <= 0 OR s.disponible = 0)";
+        // 5. DISPONIBILIDAD (Usa la columna cupos_restantes)
+        if (!empty($disponibilidad)) {
+            if ($disponibilidad === 'abierto') {
+                $sql .= " AND cupos_restantes > 0 AND disponible = 1";
+            } elseif ($disponibilidad === 'cerrado') {
+                $sql .= " AND (cupos_restantes <= 0 OR disponible = 0)";
+            }
         }
 
-        $query .= " ORDER BY s.nombre_servicio ASC";
-        
-        // 4. Preparar y Bindear
-        $stmt = $this->conn->prepare($query);
+        $sql .= " ORDER BY servicio_id DESC";
 
-        if (!empty($busqueda)) {
-            $termino = "%" . $busqueda . "%";
-            $stmt->bindParam(":busqueda", $termino);
-        }
-        if (!empty($horario)) {
-            $termHorario = "%" . $horario . "%";
-            $stmt->bindParam(":horario", $termHorario);
-        }
-        if (!empty($precio_rango) && count($rango) == 2) {
-            $stmt->bindParam(":p_min", $rango[0]);
-            $stmt->bindParam(":p_max", $rango[1]);
-        }
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
 
-        $stmt->execute();
         return $stmt;
     }
 
-    // CREAR: Nuevo servicio
-    public function crear($proveedor_id, $nombre, $precio, $desc, $horario, $politicas, $cupos, $fecha_inicio, $fecha_fin) {
+    // CREAR: Actualizado con Modalidad, Categoría y Cupos Restantes
+    public function crear($proveedor_id, $categoria_id, $nombre, $precio, $desc, $horario, $politicas, $cupos, $modalidad, $fecha_inicio, $fecha_fin) {
+        
         $query = "INSERT INTO " . $this->table_name . " 
-                  (proveedor_id, nombre_servicio, precio, descripcion, horario, politicas, cupo_maximo, fecha_inicio, fecha_fin, disponible)
-                  VALUES (:pid, :nom, :pre, :desc, :hor, :pol, :cup, :fechini, :fechfin, 1)";
+                  (proveedor_id, categoria_id, nombre_servicio, precio, descripcion, horario, politicas, cupo_maximo, cupos_restantes, modalidad, fecha_inicio, fecha_fin, disponible)
+                  VALUES (:pid, :catid, :nom, :pre, :desc, :hor, :pol, :cup, :cup_rest, :mod, :fechini, :fechfin, 1)";
         
         $stmt = $this->conn->prepare($query);
+        
+        // Bind de parámetros
         $stmt->bindParam(":pid", $proveedor_id);
+        $stmt->bindParam(":catid", $categoria_id); // Nuevo
         $stmt->bindParam(":nom", $nombre);
         $stmt->bindParam(":pre", $precio);
         $stmt->bindParam(":desc", $desc);
         $stmt->bindParam(":hor", $horario);
         $stmt->bindParam(":pol", $politicas);
         $stmt->bindParam(":cup", $cupos);
+        $stmt->bindParam(":cup_rest", $cupos); // Al inicio, restantes = maximo
+        $stmt->bindParam(":mod", $modalidad);  // Nuevo
         $stmt->bindParam(":fechini", $fecha_inicio);
         $stmt->bindParam(":fechfin", $fecha_fin);
 
         return $stmt->execute();
     }
-
-    // ELIMINAR
+    
+    // ELIMINAR (Sin cambios)
     public function eliminar($servicio_id, $proveedor_id) {
-        // 1. Validar si el servicio tiene reservas activas
         $queryCheck = "SELECT COUNT(*) FROM reservas WHERE servicio_id = :sid";
         $stmtCheck = $this->conn->prepare($queryCheck);
         $stmtCheck->bindParam(":sid", $servicio_id);
         $stmtCheck->execute();
         
-        if ($stmtCheck->fetchColumn() > 0) {
-            return "reservado"; // No eliminar si hay gente inscrita
-        }
+        if ($stmtCheck->fetchColumn() > 0) return "reservado";
 
-        // 2. Si está limpio, eliminar
         $query = "DELETE FROM " . $this->table_name . " WHERE servicio_id = :sid AND proveedor_id = :pid";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":sid", $servicio_id);
         $stmt->bindParam(":pid", $proveedor_id);
-
         return $stmt->execute() ? "ok" : "error";
     }
 }
