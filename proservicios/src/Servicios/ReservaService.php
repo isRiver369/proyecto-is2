@@ -9,7 +9,7 @@ class ReservaService {
         $this->conn = $database->getConnection();
     }
 
-    // 1. CREAR RESERVA (Con transacción y resta de cupos)
+    // 1. CREAR RESERVA (Resta 1 cupo y usa transacciones)
     public function crearReserva($usuario_id, $servicio_id, $fecha, $horario, $precio) {
         try {
             $this->conn->beginTransaction();
@@ -31,7 +31,7 @@ class ReservaService {
                 return "sin_cupo"; 
             }
 
-            // Restar cupo
+            // RESTAR cupo
             $queryUpdate = "UPDATE servicios SET cupos_restantes = cupos_restantes - 1 WHERE servicio_id = :sid";
             $stmtUpdate = $this->conn->prepare($queryUpdate);
             $stmtUpdate->bindParam(":sid", $servicio_id);
@@ -65,7 +65,7 @@ class ReservaService {
         }
     }
 
-    // 2. OBTENER RESERVA INDIVIDUAL (Para Pagos)
+    // 2. OBTENER RESERVA POR ID (Para pantalla de Pagos)
     public function obtenerReservaPorId($reserva_id) {
         $sql = "SELECT r.*, s.nombre_servicio, s.descripcion 
                 FROM reservas r
@@ -77,10 +77,8 @@ class ReservaService {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // 3. OBTENER LISTA DE RESERVAS POR USUARIO (Esta es la que faltaba)
+    // 3. LISTAR RESERVAS POR CLIENTE (Para 'Mis Reservas')
     public function obtenerReservasPorUsuario($usuario_id) {
-        // Hacemos JOIN con servicios para mostrar el nombre del curso
-        // Hacemos LEFT JOIN con pagos para ver si ya pagó
         $sql = "SELECT r.*, s.nombre_servicio, p.estado_pago
                 FROM reservas r
                 JOIN servicios s ON r.servicio_id = s.servicio_id
@@ -91,7 +89,69 @@ class ReservaService {
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(':uid', $usuario_id);
         $stmt->execute();
-        return $stmt; // Retornamos el statement para recorrerlo con while o fetchAll
+        return $stmt;
+    }
+
+    // 4. LISTAR RESERVAS POR PROVEEDOR (NUEVA: Para 'Panel Proveedor')
+    // Esta función busca todas las reservas de los servicios que pertenecen al proveedor
+    public function obtenerReservasPorProveedor($proveedor_id) {
+        $sql = "SELECT r.*, s.nombre_servicio, u.nombre as nombre_cliente, u.apellido as apellido_cliente, u.email as email_cliente, p.estado_pago
+                FROM reservas r
+                JOIN servicios s ON r.servicio_id = s.servicio_id
+                JOIN usuarios u ON r.usuario_id = u.usuario_id
+                LEFT JOIN pagos p ON r.reserva_id = p.reserva_id
+                WHERE s.proveedor_id = :pid
+                ORDER BY r.reserva_id DESC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':pid', $proveedor_id);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    // 5. CANCELAR RESERVA (Devuelve el cupo)
+    public function cancelarReserva($reserva_id, $usuario_id) {
+        try {
+            $this->conn->beginTransaction();
+
+            $sqlGet = "SELECT servicio_id, estado FROM reservas WHERE reserva_id = :rid AND usuario_id = :uid FOR UPDATE";
+            $stmtGet = $this->conn->prepare($sqlGet);
+            $stmtGet->bindParam(':rid', $reserva_id);
+            $stmtGet->bindParam(':uid', $usuario_id);
+            $stmtGet->execute();
+            $reserva = $stmtGet->fetch(PDO::FETCH_ASSOC);
+
+            if (!$reserva) {
+                $this->conn->rollBack();
+                return false;
+            }
+
+            if ($reserva['estado'] === 'cancelada') {
+                $this->conn->rollBack();
+                return true;
+            }
+
+            // Devolver Cupo
+            $sqlUpdateService = "UPDATE servicios SET cupos_restantes = cupos_restantes + 1 WHERE servicio_id = :sid";
+            $stmtUpd = $this->conn->prepare($sqlUpdateService);
+            $stmtUpd->bindParam(':sid', $reserva['servicio_id']);
+            $stmtUpd->execute();
+
+            // Cancelar Reserva
+            $sqlCancel = "UPDATE reservas SET estado = 'cancelada' WHERE reserva_id = :rid";
+            $stmtCancel = $this->conn->prepare($sqlCancel);
+            $stmtCancel->bindParam(':rid', $reserva_id);
+            $stmtCancel->execute();
+
+            $this->conn->commit();
+            return true;
+
+        } catch (Exception $e) {
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
+            return false;
+        }
     }
 }
 ?>

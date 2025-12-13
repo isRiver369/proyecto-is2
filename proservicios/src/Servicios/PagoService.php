@@ -1,115 +1,89 @@
 <?php
 require_once __DIR__ . '/../../config/Database.php';
-require_once __DIR__ . '/NotificacionService.php';
 
 class PagoService {
     private $conn;
-    private $notificador;
 
-    // APLICACIÓN DE DIP (Dependency Inversion Principle):
-    // Usamos null por defecto para mantener compatibilidad si no se pasan.
-    public function __construct($dbConn = null, $notificador = null) {
-        
-        // 1. Inyección de Base de Datos
-        if ($dbConn == null) {
-            $database = new Database();
-            $this->conn = $database->getConnection();
-        } else {
-            $this->conn = $dbConn;
-        }
-
-        // 2. Inyección del Notificador
-        if ($notificador == null) {
-            $this->notificador = new NotificacionService();
-        } else {
-            $this->notificador = $notificador;
-        }
+    public function __construct() {
+        $database = new Database();
+        $this->conn = $database->getConnection();
     }
 
-    // 1. Obtener datos de la reserva
+    // 1. OBTENER DATOS PARA PAGAR (Pantalla de Checkout)
     public function obtenerReservaParaPago($reserva_id, $usuario_id) {
-        $query = "SELECT r.*, s.nombre_servicio, s.precio 
-                  FROM reservas r 
-                  INNER JOIN servicios s ON r.servicio_id = s.servicio_id
-                  WHERE r.reserva_id = :rid AND r.usuario_id = :uid LIMIT 0,1";
+        $sql = "SELECT r.*, s.nombre_servicio, s.descripcion, u.nombre, u.apellido, u.email, u.telefono 
+                FROM reservas r
+                JOIN servicios s ON r.servicio_id = s.servicio_id
+                JOIN usuarios u ON r.usuario_id = u.usuario_id
+                WHERE r.reserva_id = :rid AND r.usuario_id = :uid";
         
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":rid", $reserva_id);
-        $stmt->bindParam(":uid", $usuario_id);
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':rid', $reserva_id);
+        $stmt->bindParam(':uid', $usuario_id);
         $stmt->execute();
-
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // 2. Procesar el pago
-    // APLICACIÓN DE SRP (Single Responsibility): Este método solo coordina la transacción.
+    // 2. REGISTRAR EL PAGO
     public function registrarPago($reserva_id, $monto, $metodo) {
         try {
             $this->conn->beginTransaction();
 
-            // A. Registrar el pago
-            $queryPago = "INSERT INTO pagos (reserva_id, monto, metodo_pago, estado_pago) 
-                          VALUES (:rid, :monto, :metodo, 'aprobado')";
-            $stmt = $this->conn->prepare($queryPago);
-            $stmt->execute([
-                ':rid' => $reserva_id,
-                ':monto' => $monto,
-                ':metodo' => $metodo
-            ]);
+            $sqlPago = "INSERT INTO pagos (reserva_id, monto, metodo_pago, estado_pago) VALUES (:rid, :monto, :metodo, 'aprobado')";
+            $stmt = $this->conn->prepare($sqlPago);
+            $stmt->bindParam(':rid', $reserva_id);
+            $stmt->bindParam(':monto', $monto);
+            $stmt->bindParam(':metodo', $metodo);
+            $stmt->execute();
 
-            // B. Actualizar reserva
-            $queryReserva = "UPDATE reservas SET estado = 'pagada' WHERE reserva_id = :rid";
-            
-            $stmtUpdate = $this->conn->prepare($queryReserva);
-            $stmtUpdate->execute([':rid' => $reserva_id]);
-
-            // C. Notificar (Usando la dependencia inyectada)
-            $this->notificarUsuario($reserva_id, $monto);
+            $sqlReserva = "UPDATE reservas SET estado = 'pagada' WHERE reserva_id = :rid";
+            $stmtRes = $this->conn->prepare($sqlReserva);
+            $stmtRes->bindParam(':rid', $reserva_id);
+            $stmtRes->execute();
 
             $this->conn->commit();
-            return ["success" => true];
+            return ['success' => true, 'message' => 'Pago registrado'];
 
         } catch (Exception $e) {
-            if ($this->conn->inTransaction()) {
-                $this->conn->rollBack();
-            }
-            return ["success" => false, "message" => $e->getMessage()];
+            $this->conn->rollBack();
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
-    // Método auxiliar privado para manejar la lógica de notificación
-    // Ayuda a mantener limpio registrarPago()
-    private function notificarUsuario($reserva_id, $monto) {
-        $queryUser = "SELECT u.email, u.nombre FROM usuarios u 
-                      INNER JOIN reservas r ON u.usuario_id = r.usuario_id 
-                      WHERE r.reserva_id = :rid";
-        $stmtUser = $this->conn->prepare($queryUser);
-        $stmtUser->execute([':rid' => $reserva_id]);
-        $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
-
-        if ($user) {
-            // USAMOS LA PROPIEDAD INYECTADA, NO 'new'
-            $mensaje = "Hola {$user['nombre']}, tu pago de $$monto para la reserva #$reserva_id ha sido confirmado.";
-            $this->notificador->enviarEmail($user['email'], "Pago Exitoso - ProServicios", $mensaje);
-        }
-    }
-
-    // 3. Obtener comprobante
-    public function obtenerComprobante($reserva_id, $usuario_id) {
-        $query = "SELECT p.pago_id, p.monto, p.metodo_pago, r.fecha_reserva, r.reserva_id,
-                         s.nombre_servicio, u.nombre, u.apellido, u.email 
-                  FROM pagos p
-                  INNER JOIN reservas r ON p.reserva_id = r.reserva_id
-                  INNER JOIN servicios s ON r.servicio_id = s.servicio_id
-                  INNER JOIN usuarios u ON r.usuario_id = u.usuario_id
-                  WHERE r.reserva_id = :rid AND r.usuario_id = :uid 
-                  LIMIT 0,1";
+    // 3. HISTORIAL DE PAGOS (Lista)
+    public function obtenerHistorialPorUsuario($usuario_id) {
+        $sql = "SELECT p.*, s.nombre_servicio, r.fecha_reserva, r.reserva_id
+                FROM pagos p
+                JOIN reservas r ON p.reserva_id = r.reserva_id
+                JOIN servicios s ON r.servicio_id = s.servicio_id
+                WHERE r.usuario_id = :uid
+                ORDER BY p.pago_id DESC";
         
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":rid", $reserva_id);
-        $stmt->bindParam(":uid", $usuario_id);
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':uid', $usuario_id);
         $stmt->execute();
+        return $stmt;
+    }
 
+    // 4. OBTENER COMPROBANTE INDIVIDUAL 
+    public function obtenerComprobante($reserva_id) {
+        // Traemos datos del pago, reserva, servicio, cliente y proveedor
+        $sql = "SELECT 
+                    p.pago_id, p.monto, p.metodo_pago, p.estado_pago,
+                    r.fecha_reserva, r.horario_elegido, r.reserva_id,
+                    s.nombre_servicio, s.descripcion, s.precio,
+                    u.nombre as cliente_nombre, u.apellido as cliente_apellido, u.email as cliente_email,
+                    prov.nombre as prov_nombre, prov.apellido as prov_apellido, prov.email as prov_email
+                FROM pagos p
+                JOIN reservas r ON p.reserva_id = r.reserva_id
+                JOIN servicios s ON r.servicio_id = s.servicio_id
+                JOIN usuarios u ON r.usuario_id = u.usuario_id
+                JOIN usuarios prov ON s.proveedor_id = prov.usuario_id
+                WHERE r.reserva_id = :rid";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':rid', $reserva_id);
+        $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
