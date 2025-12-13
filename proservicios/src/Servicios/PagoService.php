@@ -77,6 +77,21 @@ class PagoService {
         }
     }
 
+    // 3. HISTORIAL DE PAGOS (Lista)
+    public function obtenerHistorialPorUsuario($usuario_id) {
+        $sql = "SELECT p.*, s.nombre_servicio, r.fecha_reserva, r.reserva_id
+                FROM pagos p
+                JOIN reservas r ON p.reserva_id = r.reserva_id
+                JOIN servicios s ON r.servicio_id = s.servicio_id
+                WHERE r.usuario_id = :uid
+                ORDER BY p.pago_id DESC";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':uid', $usuario_id);
+        $stmt->execute();
+        return $stmt;
+    }
+
     // Método auxiliar privado para manejar la lógica de notificación
     // Ayuda a mantener limpio registrarPago()
     private function notificarUsuario($reserva_id, $monto) {
@@ -94,7 +109,7 @@ class PagoService {
         }
     }
 
-    // 3. Obtener comprobante
+    // 4. Obtener comprobante
     public function obtenerComprobante($reserva_id, $usuario_id) {
         $query = "SELECT p.pago_id, p.monto, p.metodo_pago, r.fecha_reserva, r.reserva_id,
                          s.nombre_servicio, u.nombre, u.apellido, u.email 
