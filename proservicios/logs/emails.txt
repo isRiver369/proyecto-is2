@@ -118,3 +118,11 @@ MENSAJE:
 Hola Alejandro José, tu pago de $75 para la reserva #5 ha sido confirmado.
 --------------------------------------------------
 
+--------------------------------------------------
+FECHA: 2025-12-13 21:38:02
+PARA: pepito1@gmail.com
+ASUNTO: Pago Exitoso - ProServicios
+MENSAJE:
+Hola Pepito Carlos, tu pago de $65 para la reserva #6 ha sido confirmado.
+--------------------------------------------------
+
