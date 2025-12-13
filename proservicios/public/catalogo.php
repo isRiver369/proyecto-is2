@@ -303,17 +303,6 @@ $num = $stmt->rowCount();
         </div>
     </main>
 
-
-
-
-
-
-
-
-
-
-
-
     <script>
         const btnFiltros = document.getElementById("btnFiltros");
         const menuFiltros = document.getElementById("menuFiltros");

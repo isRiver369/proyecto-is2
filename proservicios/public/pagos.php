@@ -40,8 +40,18 @@ if (!$datosReserva) {
     die("Reserva no encontrada o no te pertenece.");
 }
 
-// 3. CÁLCULO DE PRECIOS
-$tasa_impuesto = 0.15;
+// 3. CÁLCULO DE PRECIOS (DINÁMICO)
+require_once '../src/Servicios/AdminDashboard.php'; // Importamos el dashboard
+$adminDashboard = new AdminDashboard();
+$config = $adminDashboard->obtenerConfiguracion();
+
+// Verificamos si existe la tasa en la BD, si no, usamos 15% por defecto
+if ($config && isset($config['tasa_impuesto'])) {
+    $tasa_impuesto = floatval($config['tasa_impuesto']) / 100; // Ej: 12 convertimos a 0.12
+} else {
+    $tasa_impuesto = 0.15; 
+}
+
 $total = floatval($datosReserva['total_pagar']);
 $subtotal = $total / (1 + $tasa_impuesto);
 $impuesto = $total - $subtotal;
@@ -194,10 +204,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             </div>
 
                         </div>
-                        <div class="mt-8 flex justify-end">
-                            <button type="button" onclick="validarPaso1()" class="bg-[#1A4B8C] text-white px-6 py-3 rounded-lg font-bold hover:opacity-90 transition">
+                        <div class="mt-8 flex items-center justify-between">
+                            <a href="menucliente.php" class="group flex items-center gap-2 text-gray-500 hover:text-red-600 font-bold transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform group-hover:-translate-x-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                                </svg>
+                                Cancelar y Salir
+                            </a>
+                            <button type="button" onclick="validarPaso1()" class="bg-[#1A4B8C] text-white px-6 py-3 rounded-lg font-bold hover:opacity-90 transition shadow-md flex items-center gap-2">
                                 Siguiente: Método de Pago
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
                             </button>
+
                         </div>
                     </div>
 
@@ -345,7 +365,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <span>$<?php echo number_format($subtotal, 2); ?></span>
                         </div>
                         <div class="flex justify-between opacity-90">
-                            <span>IVA (15%)</span>
+                            <span>IVA (<?php echo $tasa_impuesto * 100; ?>%)</span>
                             <span>$<?php echo number_format($impuesto, 2); ?></span>
                         </div>
                     </div>
@@ -365,18 +385,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <script>
         function changeStep(step) {
+            // 1. Mostrar el bloque de contenido correcto (Esto ya funcionaba bien)
             document.querySelectorAll('.step-block').forEach(el => el.classList.remove('active'));
             document.getElementById('step' + step).classList.add('active');
             
+            // 2. Actualizar la barra de progreso (Círculos)
             const p1 = document.getElementById('p-step-1');
             const p2 = document.getElementById('p-step-2');
-            
-            if(step === 2) {
-                p1.classList.add('completed'); p1.classList.remove('active');
+            const p3 = document.getElementById('p-step-3'); 
+
+            // Limpiamos estados para evitar conflictos al ir y volver (atrás/adelante)
+            // Quitamos 'active' y 'completed' de todos primero
+            [p1, p2, p3].forEach(p => p.classList.remove('active', 'completed'));
+
+            if(step === 1) {
+                // Paso 1: Solo el primero está activo
+                p1.classList.add('active');
+            } 
+            else if(step === 2) {
+                // Paso 2: El 1 completado, el 2 activo
+                p1.classList.add('completed');
                 p2.classList.add('active');
-            } else {
-                p1.classList.add('active'); p1.classList.remove('completed');
-                p2.classList.remove('active');
+            } 
+            else if(step === 3) {
+                // Paso 3: El 1 y 2 completados, el 3 activo
+                p1.classList.add('completed');
+                p2.classList.add('completed');
+                p3.classList.add('active');
             }
         }
 

@@ -75,7 +75,7 @@ $proveedores = $dashboard->obtenerProveedoresDetallados();
                 </td>
                 
                 <td>
-                    <div style="font-size: 0.9rem;">📧 <?php echo htmlspecialchars($p['email']); ?></div>
+                    <div style="font-size: 0.9rem;"><?php echo htmlspecialchars($p['email']); ?></div>
                     <?php if (!empty($p['telefono'])): ?>
                         <div style="font-size: 0.9rem; margin-top: 3px;">📱 <?php echo htmlspecialchars($p['telefono']); ?></div>
                     <?php endif; ?>
@@ -94,7 +94,7 @@ $proveedores = $dashboard->obtenerProveedoresDetallados();
                 <td>
                     <?php if (!empty($p['portafolio_url'])): ?>
                         <a href="<?php echo htmlspecialchars($p['portafolio_url']); ?>" target="_blank" class="btn btn-info" style="font-size: 0.8rem;">
-                            🔗 Ver Web
+                            Ver Web
                         </a>
                     <?php else: ?>
                         <span style="color: #999; font-size: 0.8rem;">No registrado</span>

@@ -45,7 +45,7 @@ $usuarios = $dashboard->obtenerTodosLosUsuarios();
     <div class="table-container">
       <div class="table-header">
         <h3>Lista Completa</h3>
-        <a href="#" class="btn btn-primary">+ Nuevo Usuario</a>
+        <p>Administra los roles de los usuarios registrados en la plataforma.</p>
       </div>
       
       <table>
@@ -79,13 +79,13 @@ $usuarios = $dashboard->obtenerTodosLosUsuarios();
                         <a href="cambiar_rol.php?id=<?php echo $u['usuario_id']; ?>&rol=proveedor" 
                            class="btn btn-info"
                            onclick="return confirm('¿Hacer PROVEEDOR a este usuario?');">
-                           ⬆ Ascender
+                           Ascender
                         </a>
                     <?php else: ?>
                         <a href="cambiar_rol.php?id=<?php echo $u['usuario_id']; ?>&rol=cliente" 
                            class="btn btn-warning"
                            onclick="return confirm('¿Bajar a CLIENTE a este usuario?');">
-                           ⬇ Degradar
+                           Degradar
                         </a>
                     <?php endif; ?>
 
@@ -99,6 +99,5 @@ $usuarios = $dashboard->obtenerTodosLosUsuarios();
       </table>
     </div>
   </main>
-
 </body>
 </html>

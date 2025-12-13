@@ -68,7 +68,7 @@ $dataServicios = json_encode(array_column($topServicios, 'cantidad'));
     <div class="table-container">
         <div class="table-header">
             <h3>Detalle de Ingresos por Mes</h3>
-            <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir Reporte</button>
+            <button class="btn btn-primary" onclick="window.print()">Imprimir Reporte</button>
         </div>
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
     <thead style="background-color: #f8f9fa;">

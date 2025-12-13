@@ -39,10 +39,10 @@ $categorias = $dashboard->obtenerCategorias();
     <h2 class="section-title">Gestión de Categorías</h2>
 
     <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] == 'creado'): ?>
-        <div class="alert alert-success">✅ Categoría creada correctamente.</div>
+        <div class="alert alert-success">Categoría creada correctamente.</div>
     <?php endif; ?>
     <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] == 'eliminado'): ?>
-        <div class="alert alert-warning">🗑️ Categoría eliminada.</div>
+        <div class="alert alert-warning">Categoría eliminada.</div>
     <?php endif; ?>
 
     <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: start;">
@@ -69,7 +69,7 @@ $categorias = $dashboard->obtenerCategorias();
                                class="btn btn-danger"
                                style="padding: 5px 10px; font-size: 0.8rem;"
                                onclick="return confirm('¿Borrar esta categoría?');">
-                               🗑️ Borrar
+                               Borrar
                             </a>
                         </td>
                     </tr>
@@ -98,7 +98,7 @@ $categorias = $dashboard->obtenerCategorias();
             </div>
             
             <div class="alert alert-info" style="margin-top: 20px; font-size: 0.85rem;">
-                ℹ️ <strong>Tip:</strong> Usa categorías generales (ej: "Hogar", "Eventos") para agrupar mejor los servicios.
+                <strong>Tip:</strong> Usa categorías generales (ej: "Hogar", "Eventos") para agrupar mejor los servicios.
             </div>
         </div>
 

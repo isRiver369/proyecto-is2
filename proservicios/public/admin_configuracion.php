@@ -6,6 +6,7 @@ Seguridad::requerirRol('administrador');
 
 $dashboard = new AdminDashboard();
 $config = $dashboard->obtenerConfiguracion();
+
 ?>
 
 <!DOCTYPE html>
@@ -101,7 +102,7 @@ $config = $dashboard->obtenerConfiguracion();
     <form action="guardar_configuracion.php" method="POST">
         
         <div class="config-section">
-            <div class="config-title">🏢 Información General</div>
+            <div class="config-title">Información General</div>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Nombre del Sitio</label>
@@ -116,7 +117,7 @@ $config = $dashboard->obtenerConfiguracion();
         </div>
 
         <div class="config-section">
-            <div class="config-title">💰 Finanzas e Impuestos</div>
+            <div class="config-title">Finanzas e Impuestos</div>
             <div class="form-grid">
                 <div class="form-group">
                     <label>Impuesto (IVA/VAT) %</label>
@@ -130,24 +131,6 @@ $config = $dashboard->obtenerConfiguracion();
                         <option value="S/." <?php echo $config['moneda'] == 'S/.' ? 'selected' : ''; ?>>S/. (Sol)</option>
                     </select>
                 </div>
-            </div>
-        </div>
-
-        <div class="config-section" style="border-color: #f5c6cb;">
-            <div class="config-title" style="color: var(--danger);">Zona de Peligro</div>
-            
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <strong>Modo Mantenimiento</strong>
-                    <p style="margin: 5px 0 0; font-size: 0.9rem; color: #666;">
-                        Si activas esto, solo los administradores podrán acceder al sitio.
-                    </p>
-                </div>
-                
-                <label class="toggle-switch">
-                    <input type="checkbox" name="modo_mantenimiento" <?php echo $config['modo_mantenimiento'] == 1 ? 'checked' : ''; ?>>
-                    <span class="slider"></span>
-                </label>
             </div>
         </div>
 
