@@ -19,9 +19,60 @@ Proveedor = Es el encargado de proveer los diferentes servicios: creación, edic
 
 Instrucciones de ejecución:
 
-Para ejecutar la aplicación, se debe instalar MySQL y AMPPS (servidor web local). En donde se debe ejecutar o importar el query completo en una base de datos.
-Se debe clonar el repositorio dentro de la carpeta "www" del Ampps, más el uso de un editor de código fuente (VsCode). Para realizar los diferente  cambios o ediciones de cada uno de los archivos .php. 
+ASOS PARA EJECUTAR PRUEBAS UNITARIAS
 
+1. Preparar el entorno 
+   - Trabajar en Google Colab o un entorno con Python ≥3.11.
+   - Instalar las herramientas necesarias:
+     pip install pytest pytest-cov
+
+2. Estructurar el código 
+   - Lógica de negocio en una carpeta src/ (ej. src/pago_service.py).
+   - Pruebas unitarias en tests/ (ej. tests/test_pago_service.py).
+
+3. Escribir pruebas con pytest* 
+   - Incluir al menos 2 pruebas unitarias.
+   - Cubrir *casos extremos* (ej. reserva inexistente, monto negativo).
+   - Usar @pytest.fixture para reutilizar objetos.
+
+4. Ejecutar las pruebas y medir cobertura  
+   cd tu_carpeta/
+   PYTHONPATH=. pytest tests/ --cov=src --cov-report=term-missing
+
+   - Verificar que la *cobertura sea ≥80%*.
+   - Asegurar que *todas las pruebas pasen*.
+
+
+PASOS PARA EJECUTAR PRUEBAS DE RENDIMIENTO (K6)
+
+1.Instalar K6 en Google Colab
+
+   wget -O k6.tar.gz "https://github.com/grafana/k6/releases/download/v0.51.0/k6-v0.51.0-linux-amd64.tar.gz"
+   tar -xzf k6.tar.gz
+   ln -s k6-v0.51.0-linux-amd64/k6 k6
+   chmod +x k6
+   ./k6 version
+
+
+2. Crear el script de prueba** (ej. test_k6_10vus.js)  
+   - Definir número de usuarios virtuales (vus) y duración.
+   - Apuntar a un endpoint real o de prueba (ej. https://jsonplaceholder.typicode.com/posts/1).
+   - Incluir check para validar respuestas 200 OK.
+   - Añadir sleep(1) para simular pausa entre peticiones.
+
+3. Ejecutar con 10 VUs 
+   ./k6 run test_k6_10vus.js
+
+   - Anotar métricas: http_reqs, req/s, http_req_duration, checks.
+
+4. Repetir con 50 VUs
+   - Modificar el script a vus: 50.
+   - Ejecutar de nuevo y comparar resultados.
+
+5. nterpretar los resultados*
+   - Verificar si el sistema escala (más usuarios → más peticiones).
+   - Evaluar si no se degrada el tiempo de respuesta.
+   - Confirmar que checks = 100% (todas las respuestas son válidas)
 
 Instrucciones para ejecutar las pruebas unitarias y de rendimiento:
 
