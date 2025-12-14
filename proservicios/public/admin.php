@@ -1,39 +1,122 @@
 <?php
-require_once '../src/Servicios/Seguridad.php';
+// public/admin.php
+require_once __DIR__ . '/../src/Servicios/Seguridad.php';
+require_once __DIR__ . '/../src/Servicios/AdminDashboard.php';
 
-// Solo deja pasar si el rol es 'administrador'
 Seguridad::requerirRol('administrador');
+
+$dashboard = new AdminDashboard();
+$stats = $dashboard->obtenerEstadisticas();
+$ultimasReservas = $dashboard->obtenerUltimasReservas();
+
+function getEstadoClass($estado) {
+    return match ($estado) {
+        'confirmada', 'pagada' => 'status-success',
+        'pendiente' => 'status-warning',
+        'cancelada' => 'status-danger',
+        default => 'status-info'
+    };
+}
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Panel Admin - ProServicios</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin - ProServicios</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-gray-800 min-h-screen text-white">
-    <div class="container mx-auto p-10">
-        <div class="flex justify-between items-center mb-10">
-            <h1 class="text-4xl font-bold text-yellow-500"> Panel de Administrador</h1>
-            <a href="logout.php" class="bg-red-600 px-4 py-2 rounded hover:bg-red-700">Cerrar Sesión</a>
-        </div>
+<body>
 
-        <div class="bg-gray-700 p-8 rounded-xl shadow-lg">
-            <h2 class="text-2xl mb-4">Bienvenido, Admin.</h2>
-            <p>Solo los usuarios con rol <strong>'administrador'</strong> pueden ver esta pantalla.</p>
-            
-            <div class="mt-8 grid grid-cols-3 gap-4">
-                <div class="bg-gray-600 p-4 rounded text-center">
-                    <span class="block text-3xl font-bold">0</span>
-                    <span class="text-sm text-gray-400">Usuarios Reportados</span>
-                </div>
-                <div class="bg-gray-600 p-4 rounded text-center">
-                    <span class="block text-3xl font-bold">$0.00</span>
-                    <span class="text-sm text-gray-400">Ingresos Totales</span>
-                </div>
-                </div>
-        </div>
+  <header class="admin-header">
+    <h1>ProServicios Admin</h1>
+    <div class="header-actions">
+      <a href="logout.php">Cerrar Sesión</a>
     </div>
+  </header>
+
+  <aside class="sidebar">
+    <h2>Menú</h2>
+    <ul>
+      <li><a href="admin.php" class="active">Dashboard</a></li>
+      <li><a href="admin_usuarios.php">Usuarios</a></li>
+      <li><a href="admin_servicios.php">Servicios</a></li>
+      <li><a href="admin_categorias.php">Categorías</a></li>
+      <li><a href="admin_proveedores.php">Proveedores</a></li>
+      <li><a href="admin_reportes.php">Reportes</a></li>
+      <li><a href="admin_configuracion.php">Configuración</a></li>
+    </ul>
+  </aside>
+
+  <main class="main-content">
+    <h2 class="section-title">Dashboard General</h2>
+
+    <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] == 'eliminado'): ?>
+        <div class="alert alert-success">Reserva eliminada correctamente.</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['error'])): ?>
+        <div class="alert alert-error">No se pudo eliminar la reserva.</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['mensaje']) && $_GET['mensaje'] == 'editado'): ?>
+      <div class="alert alert-success">La reserva ha sido actualizada correctamente.</div>
+    <?php endif; ?>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Usuarios</div>
+        <div class="stat-value"><?php echo $stats['usuarios']; ?></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ingresos</div>
+        <div class="stat-value">$<?php echo number_format($stats['ingresos'], 2); ?></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pendientes</div>
+        <div class="stat-value"><?php echo $stats['pendientes']; ?></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Servicios</div>
+        <div class="stat-value"><?php echo $stats['servicios_activos']; ?></div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h3>Últimas Reservas</h3>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th> <th>Cliente</th> <th>Servicio</th> <th>Fecha</th> <th>Estado</th> <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($ultimasReservas as $reserva): ?>
+          <tr>
+            <td>#RES<?php echo str_pad($reserva['reserva_id'], 3, '0', STR_PAD_LEFT); ?></td>
+            <td><?php echo htmlspecialchars($reserva['nombre_cliente']); ?></td>
+            <td><?php echo htmlspecialchars($reserva['nombre_servicio']); ?></td>
+            <td><?php echo date('d/m/Y', strtotime($reserva['fecha_reserva'])); ?></td>
+            <td>
+                <span class="status-badge <?php echo getEstadoClass($reserva['estado']); ?>">
+                    <?php echo ucfirst($reserva['estado']); ?>
+                </span>
+            </td>
+            <td class="action-buttons">
+                <a href="editar_reserva.php?id=<?php echo $reserva['reserva_id']; ?>" 
+                  class="btn btn-primary">
+                  Editar
+                </a>
+                <a href="eliminar_reserva.php?id=<?php echo $reserva['reserva_id']; ?>" 
+                   class="btn btn-danger"
+                   onclick="return confirm('¿Eliminar reserva?');">Eliminar</a>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </main>
 </body>
 </html>

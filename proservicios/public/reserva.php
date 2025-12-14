@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../src/Servicios/ReservaService.php';
-
+require_once '../config/Database.php';
 require_once '../src/Servicios/Seguridad.php';
 Seguridad::requerirRol('cliente');
 
@@ -12,7 +12,8 @@ if (!isset($_SESSION['usuario_id'])) {
 }
 
 // Obtener datos
-$reservaService = new ReservaService();
+$db = (new Database())->getConnection();
+$reservaService = new ReservaService($db); // <--- Inyección de Dependencias
 $stmt = $reservaService->obtenerReservasPorUsuario($_SESSION['usuario_id']);
 ?>
 
