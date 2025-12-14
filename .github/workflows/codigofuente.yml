@@ -1,0 +1,36 @@
+name: Análisis de Código Fuente (SOLID y Calidad)
+
+on:
+  push:
+    branches: [ "feature/htmls" ]
+  pull_request:
+    branches: [ "feature/htmls" ]
+
+jobs:
+  analisis-estatico:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configurar Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.9"
+
+    - name: Instalar herramientas
+      run: pip install flake8 radon
+
+    # --- Requisitos de codigo fuente ---
+
+    - name: 1. Errores de Sintaxis y Lógica
+    # Esto busca errores graves (E9), sintaxis inválida (F63), etc.
+      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: 2. Estilo y Convenciones
+    # Esto revisa el formato, pero no detiene el proceso (exit-zero)
+      run: flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: 3. Complejidad Ciclomática (Mantenibilidad)
+    # Radon califica tu código de A (bueno) a F (malo) según su complejidad
+      run: radon cc . -a

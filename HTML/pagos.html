@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesar Pago - ProServicios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #F8F9FA; 
+        }
+        .proservicios-primary { background-color: #1A4B8C; }
+        .proservicios-text { color: #212529; }
+        .proservicios-secondary-text { color: #6C757D; }
+        .proservicios-info { color: #17A2B8; }
+        .proservicios-success { background-color: #28A745; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <script>
+        // Verificación de sesión y logout
+        function requireSession() {
+            const usuario = localStorage.getItem('usuarioActual');
+            if (!usuario) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('usuarioActual');
+            window.location.href = 'login.html';
+        }
+
+        // Notificaciones simuladas (console)
+        function notificarSimulada(tipo, titulo, datos) {
+            const t = new Date().toISOString();
+            console.log(`[Notificacion][${t}] Tipo: ${tipo} - ${titulo}`, datos || {});
+        }
+
+        let reservaActual = null;
+
+        // Muestra un mensaje de estado
+        function mostrarMensaje(tipo, texto) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.style.display = 'block';
+            if (tipo === 'success') {
+                messageBox.className = 'p-3 rounded-xl bg-green-100 text-[#28A745] font-semibold mb-4';
+            } else { // error
+                messageBox.className = 'p-3 rounded-xl bg-red-100 text-[#DC3545] font-semibold mb-4';
+            }
+            messageBox.textContent = texto;
+        }
+
+        // Validación específica para pago con tarjeta
+        function validarTarjeta() {
+            const cardNumberEl = document.getElementById('cardNumber');
+            const cardNameEl = document.getElementById('cardName');
+            const expiryEl = document.getElementById('expiry');
+            const cvvEl = document.getElementById('cvv');
+            if (!cardNumberEl || !cardNameEl || !expiryEl || !cvvEl) return false;
+            const cardNumber = cardNumberEl.value.replace(/\s/g, '');
+            const cardName = cardNameEl.value.trim();
+            const expiry = expiryEl.value.trim();
+            const cvv = cvvEl.value.trim();
+
+            if (!/^\d{16}$/.test(cardNumber)) { mostrarMensaje('error', 'El número de tarjeta debe tener 16 dígitos.'); return false; }
+            if (!/^[a-zA-Z\s]{5,}$/.test(cardName) || cardName.split(' ').length < 2) { mostrarMensaje('error', 'El nombre en la tarjeta no es válido.'); return false; }
+            if (!/^\d{2}\/\d{2}$/.test(expiry)) { mostrarMensaje('error', 'El formato de vencimiento debe ser MM/AA.'); return false; }
+            const [mStr, yStr] = expiry.split('/');
+            const curYear = new Date().getFullYear() % 100;
+            const curMonth = new Date().getMonth() + 1;
+            const m = parseInt(mStr, 10), y = parseInt(yStr, 10);
+            if (m < 1 || m > 12) { mostrarMensaje('error', 'Mes de vencimiento inválido.'); return false; }
+            if (y < curYear || (y === curYear && m < curMonth)) { mostrarMensaje('error', 'La tarjeta ha expirado.'); return false; }
+            if (!/^\d{3,4}$/.test(cvv)) { mostrarMensaje('error', 'CVV inválido.'); return false; }
+            return true;
+        }
+
+        // Validación para transferencia (comprobante)
+        function validarTransferencia() {
+            const comprobanteNum = document.getElementById('voucher-number').value.trim();
+            const titular = document.getElementById('voucher-titular').value.trim();
+            const bancoOrigen = document.getElementById('voucher-origen').value.trim();
+            const bancoDestino = document.getElementById('voucher-destino').value.trim();
+            if (!comprobanteNum || !titular || !bancoOrigen || !bancoDestino) {
+                mostrarMensaje('error', 'Completa todos los datos del comprobante antes de enviar.');
+                return false;
+            }
+            const file = document.getElementById('voucher-file').files[0];
+            if (!file) {
+                mostrarMensaje('error', 'Adjunta la imagen .jpg del voucher.');
+                return false;
+            }
+            if (!/image\/(jpeg|jpg)/.test(file.type)) {
+                mostrarMensaje('error', 'El comprobante debe ser una imagen JPG.');
+                return false;
+            }
+            return true;
+        }
+
+        // Muestra/oculta secciones según método seleccionado
+        function togglePaymentSection(method) {
+            const card = document.getElementById('card-section');
+            const paypal = document.getElementById('paypal-section');
+            const transfer = document.getElementById('transfer-section');
+            if (card) card.style.display = method === 'card' ? 'block' : 'none';
+            if (paypal) paypal.style.display = method === 'paypal' ? 'block' : 'none';
+            if (transfer) transfer.style.display = method === 'transfer' ? 'block' : 'none';
+        }
+
+        // Generar comprobante simple en PDF (client-side, para pruebas)
+        function generatePDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const lines = [];
+                lines.push('Comprobante de Pago - ProServicios');
+                lines.push('------------------------------------');
+                if (reservaActual) {
+                    lines.push(`ID Reserva: ${reservaActual.id_reserva}`);
+                    lines.push(`Servicio: ${reservaActual.nombre_servicio}`);
+                    lines.push(`Fecha: ${reservaActual.fecha_simulada}`);
+                    lines.push(`Total: $${reservaActual.total.toFixed(2)}`);
+                }
+                const billing = JSON.parse(localStorage.getItem('facturacionProServicios') || '{}');
+                if (billing && billing.fullName) {
+                    lines.push('');
+                    lines.push('Datos de facturación:');
+                    lines.push(`Nombre: ${billing.fullName}`);
+                    lines.push(`Email: ${billing.email}`);
+                    if (billing.address) lines.push(`Dirección: ${billing.address}`);
+                    if (billing.phone) lines.push(`Teléfono: ${billing.phone}`);
+                }
+                let y = 20;
+                doc.setFontSize(12);
+                lines.forEach(line => { doc.text(line, 14, y); y += 8; });
+                const filename = reservaActual ? `comprobante_${reservaActual.id_reserva}.pdf` : 'comprobante.pdf';
+                doc.save(filename);
+                // Notificación simulada: comprobante generado
+                notificarSimulada('receipt_generated', 'Comprobante PDF generado', { filename, reserva: reservaActual ? reservaActual.id_reserva : null });
+            } catch (err) {
+                console.error(err);
+                mostrarMensaje('error', 'No fue posible generar el PDF en este navegador.');
+            }
+        }
+
+        // Carga los detalles de la reserva desde localStorage
+        function cargarDatosReserva() {
+            const reservaJSON = localStorage.getItem('reservaActualPago');
+            const summaryDiv = document.getElementById('reserva-summary');
+            const totalSpan = document.getElementById('total-a-pagar');
+            
+            if (!reservaJSON) {
+                summaryDiv.innerHTML = '<p class="text-red-500 font-semibold text-center">Error: No se encontró una reserva para procesar el pago. Volviendo a Reservas...</p>';
+                totalSpan.textContent = '$0.00';
+                // Usar './reservas.html' para evitar errores de URL inválida
+                setTimeout(() => window.location.href = './reservas.html', 2000);
+                return;
+            }
+
+            reservaActual = JSON.parse(reservaJSON);
+
+            // Rellenar resumen
+            summaryDiv.innerHTML = `
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="proservicios-secondary-text">ID Reserva:</span>
+                    <span class="proservicios-text font-medium">${reservaActual.id_reserva}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="proservicios-secondary-text">Servicio:</span>
+                    <span class="proservicios-text font-medium">${reservaActual.nombre_servicio}</span>
+                </div>
+                <div class="flex justify-between py-2">
+                    <span class="proservicios-secondary-text">Fecha:</span>
+                    <span class="proservicios-text font-medium">${reservaActual.fecha_simulada}</span>
+                </div>
+            `;
+            totalSpan.textContent = `$${reservaActual.total.toFixed(2)}`;
+            document.getElementById('message-box').style.display = 'none';
+            // Rellenar datos de facturación si existen en localStorage
+            const billing = JSON.parse(localStorage.getItem('facturacionProServicios') || '{}');
+            if (billing && billing.fullName) {
+                document.getElementById('billing-name').value = billing.fullName || '';
+                document.getElementById('billing-email').value = billing.email || '';
+                document.getElementById('billing-address').value = billing.address || '';
+                document.getElementById('billing-phone').value = billing.phone || '';
+                document.getElementById('billing-id').value = billing.idnumber || '';
+            }
+        }
+
+        // Configura UI personalizada para el input de comprobante
+        function setupVoucherFileUI() {
+            const input = document.getElementById('voucher-file');
+            const nameSpan = document.getElementById('voucher-file-name');
+            const buttonText = document.getElementById('voucher-file-button-text');
+            const preview = document.getElementById('voucher-preview');
+
+            if (!input) return;
+
+            input.addEventListener('change', () => {
+                const file = input.files[0];
+                if (!file) {
+                    nameSpan.textContent = 'No se ha seleccionado ningún archivo';
+                    buttonText.textContent = 'Elegir archivo';
+                    preview.innerHTML = '';
+                    return;
+                }
+                nameSpan.textContent = file.name;
+                buttonText.textContent = 'Cambiar archivo';
+
+                // Mostrar mini-preview (thumbnail) si es imagen
+                if (/image\//.test(file.type)) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.innerHTML = `<img src="${e.target.result}" alt="preview" class="w-24 h-24 object-cover rounded-md border mt-2"/>`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.innerHTML = '';
+                }
+            });
+        }
+
+        // Función para manejar el proceso de pago según método seleccionado
+        function procesarPago(event) {
+            event.preventDefault();
+
+            if (!reservaActual) {
+                mostrarMensaje('error', 'No hay reserva seleccionada. Volviendo a Reservas...');
+                setTimeout(() => window.location.href = './reservas.html', 2000);
+                return;
+            }
+
+            // Guardar datos de facturación
+            const billing = {
+                fullName: document.getElementById('billing-name').value.trim(),
+                email: document.getElementById('billing-email').value.trim(),
+                address: document.getElementById('billing-address').value.trim(),
+                phone: document.getElementById('billing-phone').value.trim(),
+                idnumber: document.getElementById('billing-id').value.trim()
+            };
+            if (!billing.fullName || !billing.email) {
+                mostrarMensaje('error', 'Por favor completa los datos de facturación (nombre y email).');
+                return;
+            }
+            localStorage.setItem('facturacionProServicios', JSON.stringify(billing));
+
+            // Verificar aceptación de términos
+            const terms = document.getElementById('accept-terms');
+            if (!terms || !terms.checked) {
+                mostrarMensaje('error', 'Debes aceptar los términos y condiciones para continuar.');
+                return;
+            }
+
+            const metodo = document.querySelector('input[name="payment-method"]:checked');
+            const metodoVal = metodo ? metodo.value : null;
+            if (!metodoVal) { mostrarMensaje('error', 'Selecciona un método de pago.'); return; }
+
+            if (metodoVal === 'card') {
+                if (!validarTarjeta()) return;
+
+                // Marcar reserva como pagada
+                let reservas = JSON.parse(localStorage.getItem('reservasProServicios') || '[]');
+                const index = reservas.findIndex(r => r.id_reserva === reservaActual.id_reserva);
+                if (index !== -1) {
+                    reservas[index].estado = 'Pagada';
+                    reservas[index].pagado = true;
+                    localStorage.setItem('reservasProServicios', JSON.stringify(reservas));
+                }
+
+                // Limpiar reserva actual de pago
+                localStorage.removeItem('reservaActualPago');
+
+                mostrarMensaje('success', `Pago de $${reservaActual.total.toFixed(2)} procesado con éxito.`);
+                // Notificación simulada: pago completado
+                notificarSimulada('payment_completed', 'Pago con tarjeta procesado', { id_reserva: reservaActual.id_reserva, total: reservaActual.total });
+                // Mostrar botón para descargar comprobante
+                const dl = document.getElementById('download-pdf-btn'); if (dl) dl.style.display = 'block';
+
+            } else if (metodoVal === 'paypal') {
+                // Simular redirección a PayPal y marcar como Pagada
+                mostrarMensaje('success', 'Redirigiendo a PayPal (simulado)...');
+                setTimeout(() => {
+                    let reservas = JSON.parse(localStorage.getItem('reservasProServicios') || '[]');
+                    const index = reservas.findIndex(r => r.id_reserva === reservaActual.id_reserva);
+                    if (index !== -1) { reservas[index].estado = 'Pagada'; reservas[index].pagado = true; localStorage.setItem('reservasProServicios', JSON.stringify(reservas)); }
+                    localStorage.removeItem('reservaActualPago');
+                    // Notificación simulada: pago via PayPal completado (simulado)
+                    notificarSimulada('payment_completed', 'Pago vía PayPal completado (simulado)', { id_reserva: reservaActual.id_reserva, total: reservaActual.total });
+                    window.location.href = 'reservas.html';
+                }, 1200);
+
+            } else if (metodoVal === 'transfer') {
+                // Validar campos de transferencia y guardar comprobante en localStorage (simulado)
+                if (!validarTransferencia()) return;
+
+                const file = document.getElementById('voucher-file').files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64 = e.target.result;
+                    const comprobante = {
+                        id_reserva: reservaActual.id_reserva,
+                        numero: document.getElementById('voucher-number').value.trim(),
+                        titular: document.getElementById('voucher-titular').value.trim(),
+                        banco_origen: document.getElementById('voucher-origen').value.trim(),
+                        banco_destino: document.getElementById('voucher-destino').value.trim(),
+                        imagen_base64: base64,
+                        enviado: false
+                    };
+                    // Guardar comprobante pendiente
+                    let pendientes = JSON.parse(localStorage.getItem('comprobantesTransferencia') || '[]');
+                    pendientes.push(comprobante);
+                    localStorage.setItem('comprobantesTransferencia', JSON.stringify(pendientes));
+
+                    mostrarMensaje('success', 'Comprobante adjuntado y enviado para validación del proveedor.');
+                    // Notificación simulada: comprobante subido
+                    notificarSimulada('voucher_uploaded', 'Comprobante de transferencia adjuntado', { id_reserva: reservaActual.id_reserva, numero: comprobante.numero });
+                    // Marcar reserva como pendiente de validación
+                    let reservas = JSON.parse(localStorage.getItem('reservasProServicios') || '[]');
+                    const index = reservas.findIndex(r => r.id_reserva === reservaActual.id_reserva);
+                    if (index !== -1) { reservas[index].estado = 'Pendiente de confirmación'; localStorage.setItem('reservasProServicios', JSON.stringify(reservas)); }
+                    localStorage.removeItem('reservaActualPago');
+                    setTimeout(() => window.location.href = 'reservas.html', 1400);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            requireSession();
+            setupVoucherFileUI();
+            cargarDatosReserva();
+        });
+    </script>
+
+    <!-- Navegación Superior -->
+    <header class="proservicios-primary text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-8 h-8 mr-3">
+                    <!-- Fondo (Escudo/Contenedor) - Color Blanco -->
+                    <path d="M100 10 C150 10, 190 50, 190 100 C190 150, 150 190, 100 190 C50 190, 10 150, 10 100 C10 50, 50 10, 100 10 Z" fill="#FFFFFF"/>
+                    <!-- Elemento 1: Libro (Cursos) - Color Azul Principal -->
+                    <path d="M60 50 Q80 45, 100 50 L100 150 Q80 155, 60 150 L60 50 M100 50 Q120 45, 140 50 L140 150 Q120 155, 100 150" fill="#1A4B8C" />
+                    <!-- Elemento 2: Checkmark (Reservas) - Color Azul Claro/Info -->
+                    <path d="M80 100 L110 130 L160 70 L145 55 L110 100 L95 85 Z" fill="#17A2B8" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>
+                <span class="text-xl font-extrabold">ProServicios</span>
+            </div>
+            <nav class="flex space-x-4 font-semibold text-sm">
+                <a href="catalogo.html" class="hover:border-b-2 border-white pb-1">Catálogo</a>
+                <a href="reservas.html" class="hover:border-b-2 border-white pb-1">Mis Reservas</a>
+                <a href="#" onclick="logout()" class="bg-white text-[#1A4B8C] px-3 py-1 rounded-full hover:bg-gray-100 transition">Salir</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <h1 class="text-3xl font-bold proservicios-text mb-8 text-center">Procesar Pago de Reserva</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Columna 1: Resumen de la Reserva -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg h-fit">
+                <h2 class="text-xl font-bold text-[#1A4B8C] mb-4">Resumen de la Orden</h2>
+                <div id="reserva-summary" class="border-b border-gray-200 pb-4 mb-4">
+                    <!-- Datos de la reserva inyectados por JS -->
+                    <p class="proservicios-secondary-text">Cargando datos...</p>
+                </div>
+                
+                <div class="flex justify-between pt-4 font-extrabold text-2xl">
+                    <span class="proservicios-text">TOTAL:</span>
+                    <span id="total-a-pagar" class="text-[#28A745]">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Columna 2: Formulario de Pago -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold text-[#1A4B8C] mb-4">Información de Pago</h2>
+                
+
+                <form onsubmit="procesarPago(event)">
+                    <!-- Datos de Facturación (Paso 2) -->
+                    <div class="mb-4 border-b pb-4">
+                        <h3 class="text-md font-semibold text-[#1A4B8C] mb-3">Datos de facturación</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium proservicios-text mb-2">Nombres y Apellidos</label>
+                                <input id="billing-name" type="text" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Nombre Apellido" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium proservicios-text mb-2">Correo</label>
+                                <input id="billing-email" type="email" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="correo@dominio.com" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium proservicios-text mb-2">Dirección</label>
+                                <input id="billing-address" type="text" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Dirección de residencia">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium proservicios-text mb-2">Teléfono</label>
+                                <input id="billing-phone" type="tel" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="(555) 555-555">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium proservicios-text mb-2">Número de cédula / ID</label>
+                                <input id="billing-id" type="text" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Número de documento">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Paso 3: Método de pago -->
+                    <div class="mb-4 border-b pb-4">
+                        <h3 class="text-md font-semibold text-[#1A4B8C] mb-3">Método de pago</h3>
+
+                        <div class="mb-3">
+                            <label class="inline-flex items-center mr-4">
+                                <input type="radio" name="payment-method" value="card" checked onclick="togglePaymentSection('card')" class="form-radio" />
+                                <span class="ml-2 proservicios-text">Tarjeta de crédito / débito</span>
+                            </label>
+                            <label class="inline-flex items-center mr-4">
+                                <input type="radio" name="payment-method" value="paypal" onclick="togglePaymentSection('paypal')" class="form-radio" />
+                                <span class="ml-2 proservicios-text">PayPal</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="payment-method" value="transfer" onclick="togglePaymentSection('transfer')" class="form-radio" />
+                                <span class="ml-2 proservicios-text">Transferencia / Depósito bancario</span>
+                            </label>
+                        </div>
+
+                        <!-- Iconos de seguridad -->
+                        <div class="flex items-center space-x-4 text-sm proservicios-secondary-text mb-4">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-[#28A745]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.657-1.343-3-3-3S6 9.343 6 11v3h12v-3c0-1.657-1.343-3-3-3s-3 1.343-3 3z"></path></svg>
+                                <span>SSL activo</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-[#17A2B8]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                <span>Pago seguro</span>
+                            </div>
+                        </div>
+
+                        <!-- Sección Tarjeta (visible por defecto) -->
+                        <div id="card-section">
+                            <div class="mb-5">
+                                <label for="cardNumber" class="block text-sm font-medium proservicios-text mb-2">Número de Tarjeta (16 dígitos)</label>
+                                <input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX" maxlength="19"
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17A2B8] focus:border-[#17A2B8] shadow-sm transition duration-150">
+                            </div>
+
+                            <div class="mb-5">
+                                <label for="cardName" class="block text-sm font-medium proservicios-text mb-2">Nombre en la Tarjeta</label>
+                                <input type="text" id="cardName" placeholder="Nombre Apellido" 
+                                       class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17A2B8] focus:border-[#17A2B8] shadow-sm transition duration-150">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-5 mb-8">
+                                <div>
+                                    <label for="expiry" class="block text-sm font-medium proservicios-text mb-2">Fecha de Vencimiento (MM/AA)</label>
+                                    <input type="text" id="expiry" placeholder="MM/AA" maxlength="5"
+                                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17A2B8] focus:border-[#17A2B8] shadow-sm transition duration-150">
+                                </div>
+                                <div>
+                                    <label for="cvv" class="block text-sm font-medium proservicios-text mb-2">CVV (3 o 4 dígitos)</label>
+                                    <input type="text" id="cvv" placeholder="123" maxlength="4"
+                                           class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#17A2B8] focus:border-[#17A2B8] shadow-sm transition duration-150">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección PayPal (oculta) -->
+                        <div id="paypal-section" style="display:none;" class="mb-4">
+                            <p class="proservicios-secondary-text mb-3">Serás redirigido a PayPal para completar el pago. (Simulado)</p>
+                        </div>
+
+                        <!-- Sección Transferencia (oculta) -->
+                        <div id="transfer-section" style="display:none;" class="mb-4">
+                            <p class="proservicios-secondary-text mb-3">Adjunta el comprobante de depósito/transferencia y completa los datos para validación.</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium proservicios-text mb-2">Número de comprobante</label>
+                                    <input id="voucher-number" type="text" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Número de comprobante">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium proservicios-text mb-2">Titular de la cuenta</label>
+                                    <input id="voucher-titular" type="text" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Titular">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium proservicios-text mb-2">Banco de origen</label>
+                                    <input id="voucher-origen" type="text" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Banco de origen">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium proservicios-text mb-2">Banco de destino</label>
+                                    <input id="voucher-destino" type="text" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Banco destino">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-sm font-medium proservicios-text mb-2">Imagen .jpg del voucher</label>
+                                    <div class="flex items-center space-x-3">
+                                        <label for="voucher-file" id="voucher-file-label" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-[#1A4B8C] to-[#17A2B8] text-white font-semibold rounded-lg shadow-md cursor-pointer hover:opacity-95 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V7.5A1.5 1.5 0 0016.5 6H14V5a2 2 0 00-2-2H4zM8 9a3 3 0 116 0v1h-1a1 1 0 00-1 1v3H8v-3a1 1 0 00-1-1H6V9a2 2 0 114 0z"/></svg>
+                                            <span id="voucher-file-button-text">Elegir archivo</span>
+                                        </label>
+                                        <span id="voucher-file-name" class="proservicios-secondary-text text-sm">No se ha seleccionado ningún archivo</span>
+                                    </div>
+                                    <input id="voucher-file" type="file" accept="image/jpeg,image/jpg" class="sr-only">
+                                    <p id="voucher-preview" class="mt-3"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aceptación de términos -->
+                    <div class="mb-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="accept-terms" class="h-4 w-4 text-[#1A4B8C] border-gray-300 rounded" />
+                            <span class="ml-2 proservicios-secondary-text">He leído y acepto los términos y condiciones</span>
+                        </label>
+                    </div>
+
+                    <!-- Mensaje de estado (éxito/error) -->
+                    <div id="message-box" style="display: none;"></div>
+
+                    <!-- Botones de acción -->
+                    <div class="space-y-3">
+                        <button type="submit" class="w-full proservicios-success text-white py-3 rounded-xl font-bold shadow-lg hover:bg-opacity-90 transition duration-300">Pagar Ahora</button>
+
+                        <button type="button" id="download-pdf-btn" onclick="generatePDF()" style="display:none;" class="w-full mt-1 bg-gray-800 text-white py-3 rounded-xl font-bold shadow-lg">Descargar comprobante (PDF)</button>
+
+                        <button type="button" onclick="window.location.href='reservas.html'" class="w-full mt-1 proservicios-primary text-white py-3 rounded-xl font-bold shadow-lg">Regresar a Mis Reservas</button>
+                    </div>
+
+                    <p class="mt-4 text-center text-sm proservicios-secondary-text">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1 -mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                        Transacción segura y cifrada.
+                    </p>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>

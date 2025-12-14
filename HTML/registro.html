@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Registro - ProServicios</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		body { font-family: Arial, sans-serif; background-color: #F8F9FA; }
+		.proservicios-primary { background-color: #1A4B8C; }
+		.proservicios-text { color: #212529; }
+		.proservicios-secondary-text { color: #6C757D; }
+		.proservicios-info { color: #17A2B8; }
+	</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+	<script>
+		// Si ya hay sesión iniciada, redirigir al catálogo
+		document.addEventListener('DOMContentLoaded', () => {
+			const usuario = localStorage.getItem('usuarioActual');
+			if (usuario) {
+				window.location.href = 'catalogo.html';
+			}
+		});
+
+		// Maneja el registro: validación simple y guardado en localStorage
+		function handleRegister(event) {
+			event.preventDefault();
+			const name = document.getElementById('name').value.trim();
+			const email = document.getElementById('email').value.trim().toLowerCase();
+			const password = document.getElementById('password').value;
+			const password2 = document.getElementById('password2').value;
+			const phone = document.getElementById('phone').value.trim();
+			const msg = document.getElementById('message-box');
+
+			msg.style.display = 'none';
+
+			// Validaciones básicas
+			if (name.length < 3) {
+				showMessage('error', 'El nombre debe tener al menos 3 caracteres.');
+				return;
+			}
+			if (!/^\S+@\S+\.\S+$/.test(email)) {
+				showMessage('error', 'Introduce un correo válido.');
+				return;
+			}
+			if (password.length < 4) {
+				showMessage('error', 'La contraseña debe tener al menos 4 caracteres.');
+				return;
+			}
+			if (password !== password2) {
+				showMessage('error', 'Las contraseñas no coinciden.');
+				return;
+			}
+
+			// Obtener usuarios guardados
+			const usersJSON = localStorage.getItem('usuariosProServicios') || '[]';
+			const users = JSON.parse(usersJSON);
+
+			// Verificar si el correo ya está registrado
+			if (users.find(u => u.email === email)) {
+				showMessage('error', 'Ya existe un usuario registrado con ese correo.');
+				return;
+			}
+
+			// Crear usuario y guardar
+			const nuevoUsuario = {
+				id: Date.now(),
+				name,
+				email,
+				password, // Nota: en producción NUNCA guardar contraseñas en claro
+				phone
+			};
+			users.push(nuevoUsuario);
+			localStorage.setItem('usuariosProServicios', JSON.stringify(users));
+
+			showMessage('success', 'Registro exitoso. Redirigiendo a Iniciar Sesión...');
+			setTimeout(() => window.location.href = 'login.html', 1400);
+		}
+
+		function showMessage(type, text) {
+			const msg = document.getElementById('message-box');
+			msg.style.display = 'block';
+			if (type === 'success') {
+				msg.className = 'p-3 rounded-xl bg-green-100 text-[#28A745] font-semibold mb-4';
+			} else {
+				msg.className = 'p-3 rounded-xl bg-red-100 text-[#DC3545] font-semibold mb-4';
+			}
+			msg.textContent = text;
+		}
+	</script>
+
+	<div class="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-3xl w-full">
+		<div class="p-8 sm:p-12">
+			<div class="text-center mb-6">
+				<div class="w-16 h-16 mx-auto mb-4">
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-full h-full">
+						<path d="M100 10 C150 10, 190 50, 190 100 C190 150, 150 190, 100 190 C50 190, 10 150, 10 100 C10 50, 50 10, 100 10 Z" fill="#1A4B8C"/>
+						<path d="M60 50 Q80 45, 100 50 L100 150 Q80 155, 60 150 L60 50 M100 50 Q120 45, 140 50 L140 150 Q120 155, 100 150" fill="#FFFFFF" />
+					</svg>
+				</div>
+				<h1 class="text-2xl font-extrabold text-[#1A4B8C]">Crear Cuenta</h1>
+				<p class="proservicios-secondary-text mt-2">Regístrate para reservar servicios</p>
+			</div>
+
+			<div id="message-box" style="display:none;"></div>
+
+			<form onsubmit="handleRegister(event)">
+				<div class="mb-4">
+					<label for="name" class="block text-sm font-medium proservicios-text mb-2">Nombre completo</label>
+					<input id="name" required class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="Tu nombre">
+				</div>
+
+				<div class="mb-4">
+					<label for="email" class="block text-sm font-medium proservicios-text mb-2">Correo electrónico</label>
+					<input id="email" type="email" required class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="tucorreo@mail.com">
+				</div>
+
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<div class="mb-4">
+						<label for="password" class="block text-sm font-medium proservicios-text mb-2">Contraseña</label>
+						<input id="password" type="password" required class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="••••••">
+					</div>
+					<div class="mb-4">
+						<label for="password2" class="block text-sm font-medium proservicios-text mb-2">Confirmar contraseña</label>
+						<input id="password2" type="password" required class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="••••••">
+					</div>
+				</div>
+
+				<div class="mb-6">
+					<label for="phone" class="block text-sm font-medium proservicios-text mb-2">Teléfono (opcional)</label>
+					<input id="phone" type="tel" class="w-full px-4 py-3 border border-gray-200 rounded-xl" placeholder="(555) 555-555">
+				</div>
+
+				<button type="submit" class="w-full proservicios-primary text-white py-3 rounded-xl font-bold shadow-lg hover:bg-opacity-90 transition">Registrarme</button>
+			</form>
+
+			<p class="mt-6 text-center text-sm proservicios-secondary-text">
+				¿Ya tienes cuenta? <a href="login.html" class="proservicios-info font-bold hover:underline">Inicia sesión</a>
+			</p>
+		</div>
+	</div>
+</body>
+</html>

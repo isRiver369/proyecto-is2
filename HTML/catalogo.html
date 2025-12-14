@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Servicios - ProServicios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #F8F9FA; /* Gris muy claro para fondo */
+        }
+        .proservicios-primary { background-color: #1A4B8C; }
+        .proservicios-text { color: #212529; }
+        .proservicios-secondary-text { color: #6C757D; }
+        .proservicios-info { color: #17A2B8; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <script>
+        // Notificaciones simuladas (console)
+        function notificarSimulada(tipo, titulo, datos) {
+            const t = new Date().toISOString();
+            console.log(`[Notificacion][${t}] Tipo: ${tipo} - ${titulo}`, datos || {});
+        }
+
+        // Datos de servicios simulados
+        const servicios = [
+            { id: 1, nombre: 'Clase de Piano Avanzado', precio: 65.00, descripcion: 'Taller intensivo de armonía y técnica avanzada.', disponible: true },
+            { id: 2, nombre: 'Consultoría SEO Principiantes', precio: 40.00, descripcion: 'Aprende a optimizar tu sitio web para Google.', disponible: true },
+            { id: 3, nombre: 'Masaje Relajante Express', precio: 25.00, descripcion: 'Sesión anti-estrés de 30 minutos.', disponible: true },
+            { id: 4, nombre: 'Curso Completo de Pintura', precio: 90.00, descripcion: 'Técnicas al óleo, acrílico y acuarela.', disponible: false },
+        ];
+
+        // Muestra un mensaje de estado
+        function mostrarMensaje(tipo, texto) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.style.display = 'block';
+            if (tipo === 'success') {
+                messageBox.className = 'p-3 rounded-xl bg-green-100 text-[#28A745] font-semibold mb-4';
+            } else if (tipo === 'warning') {
+                messageBox.className = 'p-3 rounded-xl bg-yellow-100 text-[#FFC107] font-semibold mb-4';
+            } else { // error
+                messageBox.className = 'p-3 rounded-xl bg-red-100 text-[#DC3545] font-semibold mb-4';
+            }
+            messageBox.textContent = texto;
+        }
+
+        // Función para añadir una reserva al localStorage y redirigir
+        function reservarServicio(servicioId) {
+            const servicio = servicios.find(s => s.id === servicioId);
+            if (!servicio) return;
+
+            // 1. Obtener reservas existentes
+            let reservas = JSON.parse(localStorage.getItem('reservasProServicios') || '[]');
+
+            // 2. Validación: Verificar si ya tiene una reserva activa para este servicio
+            const reservaExistente = reservas.find(r => 
+                r.nombre_servicio === servicio.nombre && r.estado !== 'Pagada' && r.estado !== 'Cancelada'
+            );
+
+            if (reservaExistente) {
+                mostrarMensaje('warning', `El servicio "${servicio.nombre}" ya está en tu lista de reservas (ID: ${reservaExistente.id_reserva}).`);
+                return; // Detener la ejecución si ya existe
+            }
+            
+            // 3. Crear el objeto de la nueva reserva
+            const nuevaReserva = {
+                id_reserva: Date.now(), // ID único temporal
+                nombre_servicio: servicio.nombre,
+                total: servicio.precio,
+                fecha_simulada: new Date().toLocaleDateString('es-ES'),
+                estado: 'Pendiente de confirmación',
+                pagado: false
+            };
+
+            // 4. Añadir la nueva reserva y guardar el array actualizado
+            reservas.push(nuevaReserva);
+            localStorage.setItem('reservasProServicios', JSON.stringify(reservas));
+
+            // 5. Mostrar mensaje de éxito y redirigir
+            mostrarMensaje('success', `Servicio "${servicio.nombre}" reservado con éxito. Redirigiendo a Mis Reservas...`);
+            // Notificación simulada en consola
+            notificarSimulada('reservation_created', 'Reserva creada', { id_reserva: nuevaReserva.id_reserva, servicio: nuevaReserva.nombre_servicio, total: nuevaReserva.total });
+            // FIX: Usar './reservas.html' para evitar errores de URL inválida
+            setTimeout(() => window.location.href = './reservas.html', 1500); 
+        }
+
+        // Verificación de sesión y funciones auxiliares
+        function requireSession() {
+            const usuario = localStorage.getItem('usuarioActual');
+            if (!usuario) {
+                // No autenticado -> redirigir a login
+                window.location.href = 'login.html';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('usuarioActual');
+            // También opcionalmente limpiar otros datos locales si se desea
+            window.location.href = 'login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar sesión antes de inicializar la página
+            requireSession();
+
+            // Elimina la lista de reservas guardada en localStorage.
+            localStorage.removeItem('reservasProServicios');
+            // Opcionalmente, también eliminamos la reserva pendiente de pago, aunque no debería existir si eliminamos las reservas.
+            localStorage.removeItem('reservaActualPago');
+
+
+            const container = document.getElementById('servicios-container');
+            
+            // Renderizar las tarjetas de servicio
+            servicios.forEach(servicio => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 overflow-hidden';
+
+                const buttonClass = servicio.disponible
+                    ? 'proservicios-primary text-white hover:bg-opacity-90'
+                    : 'bg-gray-400 text-white cursor-not-allowed';
+                
+                const buttonHtml = servicio.disponible
+                    ? `<button onclick="reservarServicio(${servicio.id})" class="w-full py-3 font-bold ${buttonClass} rounded-b-xl">Reservar ($${servicio.precio.toFixed(2)})</button>`
+                    : `<button class="w-full py-3 font-bold ${buttonClass} rounded-b-xl" disabled>Sin cupo</button>`;
+
+                card.innerHTML = `
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold text-[#1A4B8C] mb-2">${servicio.nombre}</h3>
+                        <p class="proservicios-secondary-text mb-4 text-sm">${servicio.descripcion}</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-extrabold text-[#212529]">$${servicio.precio.toFixed(2)}</span>
+                            <span class="text-xs font-semibold ${servicio.disponible ? 'bg-green-100 text-[#28A745]' : 'bg-red-100 text-[#DC3545]'} py-1 px-3 rounded-full">
+                                ${servicio.disponible ? 'Disponible' : 'Sin cupo'}
+                            </span>
+                        </div>
+                    </div>
+                    ${buttonHtml}
+                `;
+                container.appendChild(card);
+            });
+        });
+    </script>
+
+    <!-- Navegación Superior -->
+    <header class="proservicios-primary text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <!-- Logo SVG Pequeño -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" class="w-8 h-8 mr-3">
+                    <!-- Fondo (Escudo/Contenedor) - Color Blanco -->
+                    <path d="M100 10 C150 10, 190 50, 190 100 C190 150, 150 190, 100 190 C50 190, 10 150, 10 100 C10 50, 50 10, 100 10 Z" fill="#FFFFFF"/>
+                    <!-- Elemento 1: Libro (Cursos) - Color Azul Principal -->
+                    <path d="M60 50 Q80 45, 100 50 L100 150 Q80 155, 60 150 L60 50 M100 50 Q120 45, 140 50 L140 150 Q120 155, 100 150" fill="#1A4B8C" />
+                    <!-- Elemento 2: Checkmark (Reservas) - Color Azul Claro/Info -->
+                    <path d="M80 100 L110 130 L160 70 L145 55 L110 100 L95 85 Z" fill="#17A2B8" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>
+                <span class="text-xl font-extrabold">ProServicios</span>
+            </div>
+            <nav class="flex space-x-4 font-semibold text-sm">
+                <a href="catalogo.html" class="border-b-2 border-white pb-1">Catálogo</a>
+                <a href="reservas.html" class="hover:border-b-2 border-white pb-1">Mis Reservas</a>
+                <a href="#" onclick="logout()" class="bg-white text-[#1A4B8C] px-3 py-1 rounded-full hover:bg-gray-100 transition">Salir</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <h1 class="text-3xl font-bold proservicios-text mb-8">Explora nuestros servicios disponibles</h1>
+        
+        <!-- Mensaje de estado (éxito/error/warning) -->
+        <div id="message-box" style="display: none;"></div>
+        
+        <!-- Contenedor de las Tarjetas de Servicio -->
+        <div id="servicios-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Las tarjetas se insertarán aquí por JavaScript -->
+        </div>
+    </main>
+</body>
+</html>
