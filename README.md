@@ -25,6 +25,8 @@ Se debe clonar el repositorio dentro de la carpeta "www" del Ampps, más el uso 
 
 Instrucciones para ejecutar las pruebas unitarias y de rendimiento:
 
+Las pruebas unitarias y de rendimiento se ejecutan automáticamente en GitHub Actions mediante el archivo pruebas.yml, ubicado en la carpeta .github/workflows. Cada vez que se hace un push a una rama (como feature/htmls), se activa el flujo de trabajo, que ejecuta las pruebas y muestra el resultado en la pestaña “Actions”con estado verde si pasan o rojo si fallan. Esto permite validar el código antes de mergearlo, asegurando calidad y estabilidad del sistema.
+
 
 Integrantes del equipo y roles
 
@@ -34,7 +36,13 @@ Stalin Najera       =  Back-End
 Matias Peñaherrera  =  Back-End
 
 
+Aplicación de SOLID y Patrón de diseño:
 
+Principio de Responsabilidad Única (SRP): Separamos la lógica de validación de pagos en clases específicas (ValidadorTarjeta, ValidadorTransferencia) para que cada clase tenga una única razón para cambiar.
+
+Inversión de Dependencias (DIP) y Segregación de Interfaces (ISP): Creamos la interfaz IPagoValidador en PHP. Esto permite que nuestro controlador no dependa de validadores concretos, sino de la abstracción.
+
+Patrón Factory: Implementamos una fábrica (ValidadorFactory) para instanciar dinámicamente el validador correcto según el método de pago seleccionado por el usuario, eliminando condicionales complejos en el controlador.
 
 
 
