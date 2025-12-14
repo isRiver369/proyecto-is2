@@ -89,3 +89,5 @@ class NotificadorMock:
 
     def enviar_email(self, email, asunto, mensaje):
         self.enviados.append({"email": email, "asunto": asunto, "mensaje": mensaje})
+
+#actualizando prueba
