@@ -3,10 +3,10 @@ name: CI - QA PagoService
 on:
   push:
     paths:
-      - 'Pruebas1/**'
+      - 'Pruebas1/qa/**'
   pull_request:
     paths:
-      - 'Pruebas1/**'
+      - 'Pruebas1/qa/**'
 
 jobs:
   test:
@@ -24,5 +24,5 @@ jobs:
 
       - name: Run tests and check coverage
         run: |
-          cd Pruebas1
+          cd Pruebas1/qa
           PYTHONPATH=. pytest tests/ --cov=src --cov-fail-under=80 --cov-report=term-missing
