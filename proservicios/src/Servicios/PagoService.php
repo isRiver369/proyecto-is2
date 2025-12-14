@@ -47,6 +47,13 @@ class PagoService {
         try {
             $this->conn->beginTransaction();
 
+            // A. Verificar si la reserva ya está pagada
+            $queryCheck = "SELECT estado FROM reservas WHERE reserva_id = :rid";
+            $stmtCheck = $this->conn->prepare($queryCheck);
+            $stmtCheck->bindParam(":rid", $reserva_id);
+            $stmtCheck->execute();
+            $reserva = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
             // A. Registrar el pago
             $queryPago = "INSERT INTO pagos (reserva_id, monto, metodo_pago, estado_pago) 
                           VALUES (:rid, :monto, :metodo, 'aprobado')";

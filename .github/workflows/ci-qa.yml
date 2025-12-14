@@ -1,0 +1,30 @@
+name: CI - QA PagoService
+
+on:
+  push:
+    paths:
+      - 'Pruebas1/qa/**'
+  pull_request:
+    paths:
+      - 'Pruebas1/qa/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+
+      - name: Run tests and enforce coverage ≥80%
+        run: |
+          cd Pruebas1/qa
+          PYTHONPATH=. pytest tests/ --cov=src --cov-fail-under=80 --cov-report=term-missing

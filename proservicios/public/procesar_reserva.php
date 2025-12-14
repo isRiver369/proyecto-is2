@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['servicio_id'])) {
     $usuario_id = $_SESSION['usuario_id'];
     $servicio_id = $_POST['servicio_id'];
     $precio = $_POST['precio'];
-    
+    $db = (new Database())->getConnection();
     // Validación de fecha
     $fecha_inicio = !empty($_POST['fecha']) ? $_POST['fecha'] : date('Y-m-d');
     
@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['servicio_id'])) {
     // 4. INSTANCIAR SERVICIO
     // Nota: El ReservaService que te pasé antes crea su propia conexión en el constructor,
     // así que no hace falta pasarle $db aquí.
-    $reservaService = new ReservaService();
+    $reservaService = new ReservaService($db);
     
     try {
         // 5. LLAMAR A LA FUNCIÓN (CORREGIDO EL ORDEN DE PARÁMETROS)

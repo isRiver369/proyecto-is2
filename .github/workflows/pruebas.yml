@@ -1,0 +1,24 @@
+name: Pruebas Unitarias Modulares
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configurar Python 3.9
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.9"
+
+    - name: Instalar herramientas de prueba
+      # Instalamos pytest para correr las pruebas y pytest-cov para medir el %
+      run: pip install pytest pytest-cov
+
+    - name: Ejecutar Pruebas con Reporte de Cobertura
+      # pytest busca automáticamente todos los archivos 'test_*.py' dentro de Pruebas1
+      # --cov=. indica que calcule la cobertura sobre los archivos actuales
+      run: pytest Pruebas1/ --cov=. --cov-report=term-missing

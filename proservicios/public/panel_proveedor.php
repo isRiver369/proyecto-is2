@@ -15,7 +15,7 @@ $usuario_id = $_SESSION['usuario_id'];
 $db = (new Database())->getConnection();
 $servicioModel = new Servicio($db);
 $authService = new AuthService();
-$reservaService = new ReservaService(); 
+$reservaService = new ReservaService($db); 
 $categoriaObj = new Categoria();
 $categorias = $categoriaObj->obtenerCategorias();
 
@@ -67,15 +67,12 @@ $misReservas = $reservaService->obtenerReservasPorProveedor($usuario_id);
         <?php endif; ?>
 
         <div class="flex border-b border-gray-200 mb-6">
-            <button onclick="switchTab('servicios')" id="tab-servicios" class="active-tab px-6 py-3 text-gray-600 hover:text-[#1A4B8C] transition">Mis Servicios</button>
-            <button onclick="switchTab('perfil')" id="tab-perfil" class="px-6 py-3 text-gray-600 hover:text-[#1A4B8C] transition">Mi Perfil (Bio)</button>
-            <button onclick="switchTab('reservas')" id="tab-reservas" class="px-6 py-3 text-gray-600 hover:text-[#1A4B8C] transition">Reservas</button>
-            <button onclick="switchTab('agenda')" id="tab-agenda" class="px-6 py-3 text-gray-600 hover:text-[#1A4B8C] transition">Agenda</button>
+            <button onclick="switchTab('servicios')" id="tab-servicios" class="active-tab px-6 py-3 text-gray-500 hover:text-[#1A4B8C] transition">Mis Servicios</button>
+            <button onclick="switchTab('perfil')" id="tab-perfil" class="px-6 py-3 text-gray-500 hover:text-[#1A4B8C] transition">Mi Perfil (Bio)</button>
+            <button onclick="switchTab('reservas')" id="tab-reservas" class="px-6 py-3 text-gray-500 hover:text-[#1A4B8C] transition">Reservas</button>
+            <button onclick="switchTab('agenda')" id="tab-agenda" class="px-6 py-3 text-gray-500 hover:text-[#1A4B8C] transition">Agenda</button>
         </div>
 
-
-
-        
         <div id="view-servicios" class="block">
             <div class="flex flex-col mb-6">
                 <h2 class="text-2xl font-bold text-gray-800">Crear nuevo servicio</h2>
