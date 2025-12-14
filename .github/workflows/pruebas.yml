@@ -14,10 +14,11 @@ jobs:
       with:
         python-version: "3.9"
 
-    # Apuntamos a la carpeta 'Pruebas1'
-    
-    - name: 1. Ejecutar Pruebas de Calculadora (Financiero)
-      run: python Pruebas1/test_calculadora.py
+    - name: Instalar herramientas de prueba
+      # Instalamos pytest para correr las pruebas y pytest-cov para medir el %
+      run: pip install pytest pytest-cov
 
-    - name: 2. Ejecutar Pruebas de Validador (Estados)
-      run: python Pruebas1/test_validador.py
+    - name: Ejecutar Pruebas con Reporte de Cobertura
+      # pytest busca automáticamente todos los archivos 'test_*.py' dentro de Pruebas1
+      # --cov=. indica que calcule la cobertura sobre los archivos actuales
+      run: pytest Pruebas1/ --cov=. --cov-report=term-missing
